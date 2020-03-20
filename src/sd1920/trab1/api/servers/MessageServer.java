@@ -3,6 +3,7 @@ package sd1920.trab1.api.servers;
 import org.glassfish.jersey.jdkhttp.JdkHttpServerFactory;
 import org.glassfish.jersey.server.ResourceConfig;
 import sd1920.trab1.api.resources.MessageResource;
+import sd1920.trab1.api.rest.MessageService;
 import sd1920.trab1.api.servers.discovery.Discovery;
 
 import java.net.InetAddress;
@@ -34,11 +35,11 @@ public class MessageServer {
 
 		String serverURI = String.format("http://%s:%s/rest", ip, PORT);
 
-		Discovery discovery = new Discovery(new InetSocketAddress("226.226.226.226", 2266), DOMAIN, serverURI);
+		Discovery discovery = new Discovery(new InetSocketAddress("226.226.226.226", 2266), DOMAIN, serverURI+ MessageService.PATH);
 		discovery.start();
 
 		pool.execute(new Thread( () -> {
-			config.register(new MessageResource(discovery));
+			config.register(new MessageResource(discovery, DOMAIN));
 		}));
 
 		JdkHttpServerFactory.createHttpServer( URI.create(serverURI), config);

@@ -1,34 +1,21 @@
 package sd1920.trab1.api.resources;
 
 import java.net.URI;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.*;
 import java.util.logging.Logger;
 
 import javax.inject.Singleton;
-import javax.ws.rs.Path;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
-import javax.ws.rs.client.Entity;
 import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
 import org.glassfish.jersey.client.ClientConfig;
-import org.glassfish.jersey.server.ResourceConfig;
 import sd1920.trab1.api.Message;
-import sd1920.trab1.api.User;
 import sd1920.trab1.api.rest.MessageService;
-import sd1920.trab1.api.servers.MessageServer;
 import sd1920.trab1.api.servers.discovery.Discovery;
 
 @Singleton
@@ -41,11 +28,13 @@ public class MessageResource implements MessageService {
 
     private static Logger Log = Logger.getLogger(MessageResource.class.getName());
     private Discovery discovery;
+    private String domain;
 
 
-    public MessageResource(Discovery discovery) {
+    public MessageResource(Discovery discovery, String domain) {
         this.randomNumberGenerator = new Random(System.currentTimeMillis());
         this.discovery = discovery;
+        this.domain = domain;
     }
 
     @Override
@@ -56,7 +45,7 @@ public class MessageResource implements MessageService {
             throw new WebApplicationException(Status.CONFLICT);
         }
 
-        Response response = webTarget().path("/users" + msg.getSender()).queryParam("pwd", pwd)
+        Response response = webTarget(domain, "users").path(msg.getSender().split("@")[0]).queryParam("pwd", pwd)
                 .request(MediaType.APPLICATION_JSON)
                 .accept(MediaType.APPLICATION_JSON_TYPE).get();
 
@@ -70,15 +59,17 @@ public class MessageResource implements MessageService {
                 newID = Math.abs(randomNumberGenerator.nextLong());
             }
 
+            msg.setId(newID);
             //Add the message to the global list of messages
             allMessages.put(newID, msg);
         }
         Log.info("Created new message with id: " + newID);
 
 
-
         synchronized (this) {
             //Add the message (identifier) to the inbox of each recipient
+            //FIXME:missing messages from other domains
+
             for (String recipient : msg.getDestination()) {
                 if (!userInboxs.containsKey(recipient)) {
                     userInboxs.put(recipient, new HashSet<Long>());
@@ -93,6 +84,13 @@ public class MessageResource implements MessageService {
     @Override
     public Message getMessage(String user, long mid, String pwd) {
         Log.info("Received request for message with id: " + mid + ".");
+        Response response = webTarget(domain, "messages").path("/users/" + user.split("@")[0]).queryParam("pwd", pwd)
+                .request(MediaType.APPLICATION_JSON)
+                .accept(MediaType.APPLICATION_JSON_TYPE).get();
+
+        if (response.getStatus() == Status.FORBIDDEN.getStatusCode()) {
+            throw new WebApplicationException((Status.FORBIDDEN));
+        }
         Message m = null;
 
         synchronized (this) {
@@ -100,16 +98,8 @@ public class MessageResource implements MessageService {
         }
 
         if (m == null) { //check if message exists
-                Log.info("Requested message does not exists.");
-                throw new WebApplicationException(Status.NOT_FOUND); //if not send HTTP 404 back to client
-        }
-
-        Response response = webTarget().path("/users/" + user).queryParam("pwd", pwd)
-                .request(MediaType.APPLICATION_JSON)
-                .accept(MediaType.APPLICATION_JSON_TYPE).get();
-
-        if (response.getStatus() == Status.FORBIDDEN.getStatusCode()) {
-            throw new WebApplicationException((Status.FORBIDDEN));
+            Log.info("Requested message does not exists.");
+            throw new WebApplicationException(Status.NOT_FOUND); //if not send HTTP 404 back to client
         }
 
         Log.info("Returning requested message to user.");
@@ -118,11 +108,11 @@ public class MessageResource implements MessageService {
     }
 
     @Override
-    public List<Message> getMessages(String user, String pwd) {
+    public List<Long> getMessages(String user, String pwd) {
         Log.info("Received request for messages with optional user parameter set to: '" + user + "'");
-        List<Message> messages = new ArrayList<Message>();
+        List<Long> messages = new LinkedList<>();
 
-        Response response = webTarget().path("/users/" + user).queryParam("pwd", pwd)
+        Response response = webTarget(domain, "messages").path("/users/" + user.split("@")[0]).queryParam("pwd", pwd)
                 .request(MediaType.APPLICATION_JSON)
                 .accept(MediaType.APPLICATION_JSON_TYPE).get();
 
@@ -136,7 +126,7 @@ public class MessageResource implements MessageService {
             Set<Long> mids = userInboxs.getOrDefault(user, Collections.emptySet());
             for (Long l : mids) {
                 Log.info("Adding message with id: " + l + ".");
-                messages.add(allMessages.get(l));
+                messages.add(l);
             }
         }
 
@@ -154,7 +144,7 @@ public class MessageResource implements MessageService {
             }
         }
 
-        Response response = webTarget().path("/users/" + user).queryParam("pwd", pwd)
+        Response response = webTarget(domain, "messages").path("/users/" + user.split("@")[0]).queryParam("pwd", pwd)
                 .request(MediaType.APPLICATION_JSON)
                 .accept(MediaType.APPLICATION_JSON_TYPE).get();
 
@@ -176,7 +166,7 @@ public class MessageResource implements MessageService {
     @Override
     public void deleteMessage(String user, long mid, String pwd) {
 
-        Response response = webTarget().path("/users/" + user).queryParam("pwd", pwd)
+        Response response = webTarget(domain, "messages").path("/users/" + user.split("@")[0]).queryParam("pwd", pwd)
                 .request(MediaType.APPLICATION_JSON)
                 .accept(MediaType.APPLICATION_JSON_TYPE).get();
 
@@ -190,14 +180,16 @@ public class MessageResource implements MessageService {
 
     }
 
-    private WebTarget webTarget() {
+    private WebTarget webTarget(String domain, String serviceType) {
 
         ClientConfig config = new ClientConfig();
         Client client = ClientBuilder.newClient(config);
-        URI uri = discovery.knownUrisOf("UsersService")[0];
-
-        WebTarget target = client.target(uri);
-
-        return target;
+        URI[] l = discovery.knownUrisOf(domain);
+        for (URI uri : l) {
+            if(uri.toString().contains(serviceType)){
+                return  client.target(uri);
+            }
+        }
+        return null;
     }
 }

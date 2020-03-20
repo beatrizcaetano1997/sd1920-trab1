@@ -4,6 +4,7 @@ import org.glassfish.jersey.jdkhttp.JdkHttpServerFactory;
 import org.glassfish.jersey.server.ResourceConfig;
 import sd1920.trab1.api.resources.MessageResource;
 import sd1920.trab1.api.resources.UsersResource;
+import sd1920.trab1.api.rest.UserService;
 import sd1920.trab1.api.servers.discovery.Discovery;
 
 import java.net.InetAddress;
@@ -34,13 +35,12 @@ public class UserServer {
 
         String serverURI = String.format("http://%s:%s/rest", ip, PORT);
 
-        Discovery discovery = new Discovery(new InetSocketAddress("226.226.226.226", 2266), DOMAIN, serverURI);
-        discovery.start();
-
         pool.execute(new Thread( () -> {
-            config.register(new UsersResource(discovery, DOMAIN));
+            config.register(new UsersResource(DOMAIN));
         }));
 
+        Discovery discovery = new Discovery(new InetSocketAddress("226.226.226.226", 2266), DOMAIN, serverURI + UserService.PATH);
+        discovery.start();
 
         JdkHttpServerFactory.createHttpServer( URI.create(serverURI), config);
 

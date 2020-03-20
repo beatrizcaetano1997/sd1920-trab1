@@ -20,13 +20,11 @@ public class UsersResource implements UserService {
 
     private final HashMap<String, User> users = new HashMap<>();
 
-    private Discovery discovery;
     private String domain;
 
     private static Logger Log = Logger.getLogger(MessageResource.class.getName());
 
-    public UsersResource(Discovery discovery, String domain) {
-        this.discovery = discovery;
+    public UsersResource(String domain) {
         this.domain = domain;
     }
 
@@ -44,7 +42,7 @@ public class UsersResource implements UserService {
             users.put(user.getName(), user);
         }
 
-        return user.getName() + " @ " + user.getDomain();
+        return user.getName() + "@" + user.getDomain();
     }
 
     @Override
@@ -62,6 +60,9 @@ public class UsersResource implements UserService {
     public User updateUser(String name, String pwd, User user) {
 
         synchronized (this) {
+            if(!users.containsKey(name)){
+                throw new WebApplicationException(Status.NOT_FOUND);
+            }
             if (!users.containsKey(name) && !users.get(name).getPwd().equals(pwd)) {
                 throw new WebApplicationException(Status.CONFLICT);
             }
@@ -88,9 +89,7 @@ public class UsersResource implements UserService {
                 throw new WebApplicationException(Status.CONFLICT);
             }
 
-            User removed = users.remove(user);
-
-            return removed;
+            return users.remove(user);
         }
     }
 }

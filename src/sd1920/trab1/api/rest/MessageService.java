@@ -16,11 +16,11 @@ import sd1920.trab1.api.Message;
 
 @Path(MessageService.PATH)
 public interface MessageService {
-	final static String PATH = "/messages";
+	String PATH = "/messages";
 	
 	/**
 	 * Posts a new message to the server, associating it to the inbox of every individual destination.
-	 * An outgoing message should be modified before delivering it to the outbox, by changing the 
+	 * An outgoing message should be modified before delivering it, by assigning an ID, and by changing the
 	 * sender to be in the format "display name <name@domain>", with display name the display name
 	 * associated with a user.
 	 * NOTE: there might be some destinations that are not from the local domain (see grading for 
@@ -37,7 +37,7 @@ public interface MessageService {
 	@Path("/")
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Produces(MediaType.APPLICATION_JSON)
-	public long postMessage(@QueryParam("pwd") String pwd, Message msg);
+	long postMessage(@QueryParam("pwd") String pwd, Message msg);
 	
 	/**
 	 * Obtains the message identified by mid of user user
@@ -51,34 +51,33 @@ public interface MessageService {
 	@GET
 	@Path("/mbox/{user}/{mid}")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Message getMessage(@PathParam("user") String user, @PathParam("mid") long mid, 
-			@QueryParam("pwd") String pwd);
-		
+	Message getMessage(@PathParam("user") String user, @PathParam("mid") long mid,
+                       @QueryParam("pwd") String pwd);
+
 	/**
-	 * Returns a list of all messages stored in the server for a given user
-	 * @param user the username of the user whose messages should be returned (optional)
+	 * Returns a list of all ids of messages stored in the server for a given user
+	 * @param user the username of the user whose message ids should be returned
 	 * @param pwd password of the user
-	 * @return a list of messages potentially empty;
+	 * @return a list of ids potentially empty;
 	 *  403 if the user does not exist or if the pwd is not correct;
 	 */
 	@GET
 	@Path("/mbox/{user}")
 	@Produces(MediaType.APPLICATION_JSON)
-	public List<Message> getMessages(@QueryParam("user") String user, @QueryParam("pwd") String pwd);
-	
+	List<Long> getMessages(@PathParam("user") String user, @QueryParam("pwd") String pwd);
+
 	/**
 	 * Removes a message identified by mid from the inbox of user identified by user.
 	 * @param user the username of the inbox that is manipulated by this method
 	 * @param mid the identifier of the message to be deleted
 	 * @param pwd password of the user
-	 * @return
 	 * 403 if the user does not exist or if the pwd is not correct;
 	 * 404 is generated if the message does not exist in the server.
 	 */
 	@DELETE
 	@Path("/mbox/{user}/{mid}")
-	void removeFromUserInbox(@PathParam("user") String user, @PathParam("mid") long mid, 
-			@QueryParam("pwd") String pwd);
+	void removeFromUserInbox(@PathParam("user") String user, @PathParam("mid") long mid,
+                             @QueryParam("pwd") String pwd);
 
 	/**
 	 * Removes the message identified by mid from the inboxes of any server that holds the message.
@@ -88,14 +87,13 @@ public interface MessageService {
 	 * @param user the username of the sender of the message to be deleted
 	 * @param mid the identifier of the message to be deleted
 	 * @param pwd password of the user that sent the message
-	 * @return
 	 * 403 is generated if the user does not exist or if the pwd is not correct
 	 */
 	@DELETE
 	@Path("/msg/{user}/{mid}")
 	@Produces(MediaType.APPLICATION_JSON)
-	void deleteMessage(@PathParam("user") String user, @PathParam("mid") long mid, 
-			@QueryParam("pwd") String pwd);
+	void deleteMessage(@PathParam("user") String user, @PathParam("mid") long mid,
+                       @QueryParam("pwd") String pwd);
 	
 	
 }

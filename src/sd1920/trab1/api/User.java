@@ -8,7 +8,7 @@ public class User {
 	private String pwd;
 	private String displayName;
 	private String domain;
-	
+
 	public User() {
 		this.name = null;
 		this.pwd = null;
