@@ -1,10 +1,11 @@
-package sd1920.trab1.api.servers;
+package sd1920.trab1.core.servers;
 
 import org.glassfish.jersey.jdkhttp.JdkHttpServerFactory;
 import org.glassfish.jersey.server.ResourceConfig;
-import sd1920.trab1.api.resources.MessageResource;
+
 import sd1920.trab1.api.rest.MessageService;
-import sd1920.trab1.api.servers.discovery.Discovery;
+import sd1920.trab1.core.resources.MessageResource;
+import sd1920.trab1.core.servers.discovery.Discovery;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;

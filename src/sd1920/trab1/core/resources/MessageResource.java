@@ -1,4 +1,4 @@
-package sd1920.trab1.api.resources;
+package sd1920.trab1.core.resources;
 
 import java.net.URI;
 import java.util.*;
@@ -17,7 +17,7 @@ import javax.ws.rs.core.Response.Status;
 import org.glassfish.jersey.client.ClientConfig;
 import sd1920.trab1.api.Message;
 import sd1920.trab1.api.rest.MessageService;
-import sd1920.trab1.api.servers.discovery.Discovery;
+import sd1920.trab1.core.servers.discovery.Discovery;
 
 @Singleton
 public class MessageResource implements MessageService {

@@ -1,8 +1,8 @@
-package sd1920.trab1.api.resources;
+package sd1920.trab1.core.resources;
 
 import sd1920.trab1.api.User;
 import sd1920.trab1.api.rest.UserService;
-import sd1920.trab1.api.servers.discovery.Discovery;
+import sd1920.trab1.core.servers.discovery.Discovery;
 
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
