@@ -1,4 +1,4 @@
-package sd1920.trab1.api.servers.discovery;
+package sd1920.trab1.core.servers.discovery;
 
 import java.io.IOException;
 import java.net.*;
