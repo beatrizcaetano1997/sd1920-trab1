@@ -14,7 +14,7 @@ public class Message {
 	private long creationTime;
 	private String subject;
 	private byte[] contents;
-
+	
 	public Message() {
 		this.id = -1;
 		this.sender = null;
@@ -23,7 +23,7 @@ public class Message {
 		this.subject = null;
 		this.contents = null;
 	}
-
+	
 	public Message(String sender, String destination, String subject, byte[] contents) {
 		this.id = -1;
 		this.sender = sender;
@@ -33,7 +33,7 @@ public class Message {
 		this.subject = subject;
 		this.contents = contents;
 	}
-
+	
 	public Message(String sender, Set<String> destinations, String subject, byte[] contents) {
 		this.id = -1;
 		this.sender = sender;
@@ -57,19 +57,19 @@ public class Message {
 	public String getSender() {
 		return sender;
 	}
-
+	
 	public void setSender(String sender) {
 		this.sender = sender;
 	}
-
+	
 	public Set<String> getDestination() {
 		return destination;
 	}
-
+	
 	public void setDestination(Set<String> destination) {
 		this.destination = destination;
 	}
-
+	
 	public void addDestination(String destination) {
 		this.destination.add(destination);
 	}

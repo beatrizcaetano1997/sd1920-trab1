@@ -76,7 +76,6 @@ public class UsersResource implements UserService {
             users.get(name).setDisplayName(user.getDisplayName());
         }
 
-        //Isto aqui precisa de ser synchronized (Miguel, perguntar)
         synchronized (this) {
             return users.get(name);
         }

@@ -4,8 +4,8 @@ import java.io.IOException;
 import java.net.*;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
 
 /**
@@ -41,8 +41,8 @@ public class Discovery {
     private InetSocketAddress addr;
     private String serviceName;
     private String serviceURI;
-    private ConcurrentHashMap<String, URI> uriUsersMap = new ConcurrentHashMap<>();
-    private ConcurrentHashMap<String, URI> uriMessagesMap = new ConcurrentHashMap<>();
+    private Map<String, URI> uriUsersMap = new HashMap<>();
+    private Map<String, URI> uriMessagesMap = new HashMap<>();
 
 
 

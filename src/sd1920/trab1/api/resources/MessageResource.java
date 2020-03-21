@@ -5,9 +5,10 @@ import java.util.*;
 import java.util.logging.Logger;
 
 import javax.inject.Singleton;
-import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.*;
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
+import javax.ws.rs.client.Entity;
 import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
@@ -44,16 +45,15 @@ public class MessageResource implements MessageService {
         if (msg.getSender() == null || msg.getDestination() == null || msg.getDestination().size() == 0) {
             throw new WebApplicationException(Status.CONFLICT);
         }
+        if (pwd != null) {
+            Response response = getResponse(msg.getSender(), pwd);
 
-        Response response = webTarget(domain, "users").path(msg.getSender().split("@")[0]).queryParam("pwd", pwd)
-                .request(MediaType.APPLICATION_JSON)
-                .accept(MediaType.APPLICATION_JSON_TYPE).get();
-
-        if (response.getStatus() == Status.FORBIDDEN.getStatusCode()) {
-            throw new WebApplicationException((Status.FORBIDDEN));
+            if (response.getStatus() == Status.FORBIDDEN.getStatusCode()) {
+                throw new WebApplicationException((Status.FORBIDDEN));
+            }
         }
 
-        long newID = 0;
+        long newID = Math.abs(randomNumberGenerator.nextLong());
         synchronized (this) {
             while (allMessages.containsKey(newID)) {
                 newID = Math.abs(randomNumberGenerator.nextLong());
@@ -68,25 +68,45 @@ public class MessageResource implements MessageService {
 
         synchronized (this) {
             //Add the message (identifier) to the inbox of each recipient
-            //FIXME:missing messages from other domains
-
             for (String recipient : msg.getDestination()) {
-                if (!userInboxs.containsKey(recipient)) {
-                    userInboxs.put(recipient, new HashSet<Long>());
+                if (!recipient.split("@")[1].equals(domain)) {
+                    //Makes sure that the destination is only 1 and not all, to avoid server loops
+                    Message toSend = getMessage(msg, recipient);
+                    //PostMessage RMI to other server
+                    webTarget(recipient.split("@")[1], "messages")
+                            .queryParam("pwd", (Object) null)
+                            .request().accept(MediaType.APPLICATION_JSON)
+                            .post(Entity.entity(toSend, MediaType.APPLICATION_JSON));
+
+                } else {
+                    if (!userInboxs.containsKey(recipient)) {
+                        userInboxs.put(recipient, new HashSet<Long>());
+                    }
+                    userInboxs.get(recipient).add(newID);
                 }
-                userInboxs.get(recipient).add(newID);
             }
         }
         Log.info("Recorded message with identifier: " + newID);
         return newID;
     }
 
+    private Message getMessage(Message msg, String recipient) {
+        Message toSend = new Message();
+        toSend.setCreationTime(msg.getCreationTime());
+        Set<String> destin = new HashSet<>();
+        destin.add(recipient);
+        toSend.setDestination(destin);
+        toSend.setContents(msg.getContents());
+        toSend.setSender(msg.getSender());
+        toSend.setSubject(msg.getSubject());
+        return toSend;
+    }
+
     @Override
     public Message getMessage(String user, long mid, String pwd) {
         Log.info("Received request for message with id: " + mid + ".");
-        Response response = webTarget(domain, "messages").path("/users/" + user.split("@")[0]).queryParam("pwd", pwd)
-                .request(MediaType.APPLICATION_JSON)
-                .accept(MediaType.APPLICATION_JSON_TYPE).get();
+        Response response = getResponse(user, pwd);
+
 
         if (response.getStatus() == Status.FORBIDDEN.getStatusCode()) {
             throw new WebApplicationException((Status.FORBIDDEN));
@@ -107,14 +127,14 @@ public class MessageResource implements MessageService {
 
     }
 
+
     @Override
     public List<Long> getMessages(String user, String pwd) {
         Log.info("Received request for messages with optional user parameter set to: '" + user + "'");
         List<Long> messages = new LinkedList<>();
 
-        Response response = webTarget(domain, "messages").path("/users/" + user.split("@")[0]).queryParam("pwd", pwd)
-                .request(MediaType.APPLICATION_JSON)
-                .accept(MediaType.APPLICATION_JSON_TYPE).get();
+        Response response = getResponse(user, pwd);
+
 
         if (response.getStatus() == Status.FORBIDDEN.getStatusCode()) {
             throw new WebApplicationException((Status.FORBIDDEN));
@@ -137,38 +157,8 @@ public class MessageResource implements MessageService {
     @Override
     public void removeFromUserInbox(String user, long mid, String pwd) {
 
-        synchronized (this) {
-            if (!allMessages.containsKey(mid)) {
-                Log.info("Requested message does not exists.");
-                throw new WebApplicationException(Status.NOT_FOUND);
-            }
-        }
+        Response response = getResponse(user, pwd);
 
-        Response response = webTarget(domain, "messages").path("/users/" + user.split("@")[0]).queryParam("pwd", pwd)
-                .request(MediaType.APPLICATION_JSON)
-                .accept(MediaType.APPLICATION_JSON_TYPE).get();
-
-        if (response.getStatus() == Status.FORBIDDEN.getStatusCode()) {
-            throw new WebApplicationException((Status.FORBIDDEN));
-        }
-
-
-        synchronized (this) {
-            Message msg = allMessages.remove(mid);
-            Set<String> msgDestination = msg.getDestination();
-
-            for (String user_dest : msgDestination) {
-                userInboxs.get(user_dest).remove(mid);
-            }
-        }
-    }
-
-    @Override
-    public void deleteMessage(String user, long mid, String pwd) {
-
-        Response response = webTarget(domain, "messages").path("/users/" + user.split("@")[0]).queryParam("pwd", pwd)
-                .request(MediaType.APPLICATION_JSON)
-                .accept(MediaType.APPLICATION_JSON_TYPE).get();
 
         if (response.getStatus() == Status.FORBIDDEN.getStatusCode()) {
             throw new WebApplicationException((Status.FORBIDDEN));
@@ -180,14 +170,69 @@ public class MessageResource implements MessageService {
 
     }
 
+    @Override
+    public void deleteMessage(String user, long mid, String pwd) {
+
+        synchronized (this) {
+            if (!allMessages.containsKey(mid)) {
+                Log.info("Requested message does not exists.");
+                throw new WebApplicationException(Status.NOT_FOUND);
+            }
+        }
+
+        Response response = getResponse(user, pwd);
+
+
+        if (response.getStatus() == Status.FORBIDDEN.getStatusCode()) {
+            throw new WebApplicationException((Status.FORBIDDEN));
+        }
+
+
+        synchronized (this) {
+            Message msg = allMessages.remove(mid);
+            Set<String> msgDestination = msg.getDestination();
+
+            for (String user_dest : msgDestination) {
+                if (!user_dest.split("@")[1].equals(domain)) {
+                    Message m = new Message();
+                    m.setCreationTime(msg.getCreationTime());
+                    webTarget(user_dest.split("@")[1], "messages").path("/otherDomain/"+ user_dest)
+                            .request().accept(MediaType.APPLICATION_JSON)
+                            .post(Entity.entity(m, MediaType.APPLICATION_JSON));
+                } else {
+                    userInboxs.get(user_dest).remove(mid);
+                }
+            }
+        }
+
+    }
+
+   @Override
+   public void deleteMessageFromOtherDomain(String user, Message m){
+        synchronized (this) {
+            for (long s : allMessages.keySet()) {
+                if (allMessages.get(s).getCreationTime() == m.getCreationTime()) {
+                    Message removed = allMessages.remove(s);
+                    userInboxs.get(user).remove(removed.getId());
+                }
+            }
+        }
+    }
+
+    private Response getResponse(String user, String pwd) {
+        return webTarget(domain, "users").path(user.split("@")[0]).queryParam("pwd", pwd)
+                .request(MediaType.APPLICATION_JSON)
+                .accept(MediaType.APPLICATION_JSON_TYPE).get();
+    }
+
     private WebTarget webTarget(String domain, String serviceType) {
 
         ClientConfig config = new ClientConfig();
         Client client = ClientBuilder.newClient(config);
         URI[] l = discovery.knownUrisOf(domain);
         for (URI uri : l) {
-            if(uri.toString().contains(serviceType)){
-                return  client.target(uri);
+            if (uri.toString().contains(serviceType)) {
+                return client.target(uri);
             }
         }
         return null;

@@ -23,9 +23,9 @@ public class MessageServer {
 		System.setProperty("java.util.logging.SimpleFormatter.format", "%4$s: %5$s\n");
 	}
 	
-	public static final int PORT = 8080;
+	public static final int PORT = 8082;
 	public static final String SERVICE = "MessageService";
-	public static final String DOMAIN = "fct";
+	public static final String DOMAIN = "fcsh";
 
 	public static void main(String[] args) throws UnknownHostException {
 		ExecutorService pool = Executors.newFixedThreadPool(15);

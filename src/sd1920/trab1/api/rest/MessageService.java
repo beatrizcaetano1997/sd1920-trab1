@@ -94,6 +94,11 @@ public interface MessageService {
 	@Produces(MediaType.APPLICATION_JSON)
 	void deleteMessage(@PathParam("user") String user, @PathParam("mid") long mid,
                        @QueryParam("pwd") String pwd);
-	
+
+
+	@POST
+	@Path("/otherDomain/{user}")
+	@Consumes(MediaType.APPLICATION_JSON)
+	void deleteMessageFromOtherDomain(@PathParam("user") String user, Message m);
 	
 }
