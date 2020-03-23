@@ -101,6 +101,7 @@ public interface MessageService {
 	@Consumes(MediaType.APPLICATION_JSON)
 	void deleteMessageFromOtherDomain(@PathParam("user") String user, Message m);
 
+
 	@DELETE
 	@Path("/deleteUserInbox/{user}")
 	void deleteUserInbox(@PathParam("user") String user);

@@ -1,5 +1,6 @@
 package sd1920.trab1.core.resources;
 
+import java.io.*;
 import java.net.URI;
 import java.util.*;
 import java.util.logging.Logger;
@@ -29,8 +30,8 @@ public class MessageResource implements MessageService {
     private static final int RETRY_PERIOD = 10000;
     private Random randomNumberGenerator;
 
-    private final HashMap<Long, Message> allMessages = new HashMap<>();
-    private final HashMap<String, Set<Long>> userInboxs = new HashMap<>();
+    private HashMap<Long, Message> allMessages;
+    private HashMap<String, Set<Long>> userInboxs;
 
     private static Logger Log = Logger.getLogger(MessageResource.class.getName());
     private Discovery discovery;
@@ -41,6 +42,8 @@ public class MessageResource implements MessageService {
         this.randomNumberGenerator = new Random(System.currentTimeMillis());
         this.discovery = discovery;
         this.domain = domain;
+        deserializeMessages();
+        deserializeUserBoxes();
     }
 
     @Override
@@ -50,6 +53,8 @@ public class MessageResource implements MessageService {
         if (msg.getSender() == null || msg.getDestination() == null || msg.getDestination().size() == 0) {
             throw new WebApplicationException(Status.CONFLICT);
         }
+        //If password is null, we are assuming the message comes from otherDomain so there is no need to verify the password
+        //only place the message in the message box
         if (pwd != null) {
             Response response = verifyUser(msg.getSender(), pwd);
 
@@ -67,52 +72,57 @@ public class MessageResource implements MessageService {
             msg.setId(newID);
             //Add the message to the global list of messages
             allMessages.put(newID, msg);
+            updateOnWriteMessageBox();
         }
         Log.info("Created new message with id: " + newID);
 
-        Set<String> failedSet = new HashSet<>();
-        synchronized (this) {
-            //Add the message (identifier) to the inbox of each recipient
-            for (String recipient : msg.getDestination()) {
-                if (!recipient.split("@")[1].equals(domain)) {
-                    //Makes sure that the destination is only 1 and not all, to avoid server loops
-                    Message toSend = getMessage(msg, recipient);
-                    short retries = 0;
-                    boolean sucess = false;
-                    while (!sucess && retries < MAX_RETRIES) {
-                        try {
-                            //PostMessage RMI to other server
-                            Response r = webTarget(recipient.split("@")[1], "messages")
-                                    .queryParam("pwd", (Object) null)
-                                    .request().accept(MediaType.APPLICATION_JSON)
-                                    .post(Entity.entity(toSend, MediaType.APPLICATION_JSON));
-                            sucess = true;
-                        } catch (ProcessingException pe) {
-                            retries++;
-                            try {
-                                Thread.sleep(RETRY_PERIOD);
-                            } catch (InterruptedException ignored) {
+        //Add the message (identifier) to the inbox of each recipient
+        for (String recipient : msg.getDestination()) {
+            if (!recipient.split("@")[1].equals(domain)) {
+                //Makes sure that the destination is only 1 and not all, to avoid server loops
+                Message toSend = getMessage(msg, recipient);
+                short retries = 0;
+                boolean sucess = false;
+                while (!sucess && retries < MAX_RETRIES) {
+                    try {
+                        //PostMessage RMI to other server
+                        //FIXME: cuidado com o erro 500
+                        Response r = webTarget(recipient.split("@")[1], "messages")
+                                .queryParam("pwd", (Object) null)
+                                .request().accept(MediaType.APPLICATION_JSON)
+                                .post(Entity.entity(toSend, MediaType.APPLICATION_JSON));
 
-                            }
+                        if (r.getStatus() == Status.OK.getStatusCode()) {
+                            sucess = true;
+                        }
+
+                    } catch (ProcessingException pe) {
+                        retries++;
+                        try {
+                            Thread.sleep(RETRY_PERIOD);
+                        } catch (InterruptedException ignored) {
+
                         }
                     }
+                }
 
-                    if (!sucess) {
-                        //GERA MENSAGEM DE ERRO QUE  -> MENSAGEM NAO FOI ENVIADA ->
-                        //FALHA NO ENVIO DE mid PARA user
-                        userFailedMessage(msg, newID, recipient);
-                    }
+                if (!sucess) {
+                    //GERA MENSAGEM DE ERRO QUE  -> MENSAGEM NAO FOI ENVIADA ->
+                    //FALHA NO ENVIO DE mid PARA user
+                    userFailedMessage(msg, newID, recipient);
+                }
 
-                } else {
+            } else {
+                synchronized (this) {
                     if (!userInboxs.containsKey(recipient)) {
                         userInboxs.put(recipient, new HashSet<>());
                     }
                     userInboxs.get(recipient).add(newID);
+                    updateOnWriteMessageBox();
                 }
             }
         }
 
-        //update com as mensagens que foram e nao foram enviadas
         Log.info("Recorded message with identifier: " + newID);
         return newID;
     }
@@ -158,13 +168,16 @@ public class MessageResource implements MessageService {
 
 
         Log.info("Collecting all messages in server for user " + user);
+        Set<Long> mids;
         synchronized (this) {
-            Set<Long> mids = userInboxs.getOrDefault(user, Collections.emptySet());
-            for (Long l : mids) {
-                Log.info("Adding message with id: " + l + ".");
-                messages.add(l);
-            }
+            mids = userInboxs.getOrDefault(user, Collections.emptySet());
         }
+
+        for (Long l : mids) {
+            Log.info("Adding message with id: " + l + ".");
+            messages.add(l);
+        }
+
 
         Log.info("Returning message list to user with " + messages.size() + " messages.");
         return messages;
@@ -182,6 +195,7 @@ public class MessageResource implements MessageService {
 
         synchronized (this) {
             userInboxs.get(user).remove(mid);
+            updateOnWriteMessageBox();
         }
 
     }
@@ -205,7 +219,12 @@ public class MessageResource implements MessageService {
 
 
         synchronized (this) {
-            Message msg = allMessages.remove(mid);
+            Message msg;
+            synchronized (this) {
+                msg = allMessages.remove(mid);
+                updateOnWriteMessageBox();
+            }
+
             Set<String> msgDestination = msg.getDestination();
 
             for (String user_dest : msgDestination) {
@@ -216,7 +235,11 @@ public class MessageResource implements MessageService {
                             .request().accept(MediaType.APPLICATION_JSON)
                             .post(Entity.entity(m, MediaType.APPLICATION_JSON));
                 } else {
-                    userInboxs.get(user_dest).remove(mid);
+                    synchronized (this) {
+                        userInboxs.get(user_dest).remove(mid);
+                        updateOnWriteUserInbox();
+
+                    }
                 }
             }
         }
@@ -226,19 +249,27 @@ public class MessageResource implements MessageService {
     //method to delete messages from other domains
     @Override
     public void deleteMessageFromOtherDomain(String user, Message m) {
+        Set<Long> set;
         synchronized (this) {
-            for (long s : allMessages.keySet()) {
-                if (allMessages.get(s).getCreationTime() == m.getCreationTime()) {
-                    Message removed = allMessages.remove(s);
-                    userInboxs.get(user).remove(removed.getId());
-                }
+            set = allMessages.keySet();
+        }
+        for (long s : set) {
+            if (allMessages.get(s).getCreationTime() == m.getCreationTime()) {
+                Message removed = allMessages.remove(s);
+                updateOnWriteMessageBox();
+                userInboxs.get(user).remove(removed.getId());
+                updateOnWriteUserInbox();
+
             }
         }
+
     }
+
 
     public void deleteUserInbox(String user) {
         synchronized (this) {
             userInboxs.remove(user);
+            updateOnWriteUserInbox();
         }
     }
 
@@ -282,8 +313,12 @@ public class MessageResource implements MessageService {
         toUserMessage.setDestination(msg.getDestination());
         toUserMessage.setContents(msg.getContents());
         toUserMessage.setSubject("FALHA NO ENVIO DE " + newID + " " + recipient);
-        allMessages.put(newFailedMessageID, toUserMessage);
-        userInboxs.get(msg.getSender()).add(newFailedMessageID);
+        synchronized (this) {
+            allMessages.put(newFailedMessageID, toUserMessage);
+            userInboxs.get(msg.getSender()).add(newFailedMessageID);
+            updateOnWriteMessageBox();
+            updateOnWriteUserInbox();
+        }
     }
 
     private WebTarget webTarget(String domain, String serviceType) {
@@ -311,5 +346,62 @@ public class MessageResource implements MessageService {
         toSend.setSender(msg.getSender());
         toSend.setSubject(msg.getSubject());
         return toSend;
+    }
+    //Serialize and Deserialize methods
+
+    private void updateOnWriteUserInbox() {
+        FileOutputStream fileOut = null;
+        try {
+            fileOut = new FileOutputStream("usersInbox.ser");
+            ObjectOutputStream out = new ObjectOutputStream(fileOut);
+            out.writeObject(userInboxs);
+            out.close();
+            fileOut.close();
+        } catch (IOException e) {
+            //e.printStackTrace();
+        }
+
+    }
+
+    private void updateOnWriteMessageBox() {
+        FileOutputStream fileOut = null;
+        try {
+            fileOut = new FileOutputStream("messages.ser");
+            ObjectOutputStream out = new ObjectOutputStream(fileOut);
+            out.writeObject(allMessages);
+            out.close();
+            fileOut.close();
+        } catch (IOException e) {
+            //e.printStackTrace();
+        }
+
+    }
+
+    private void deserializeMessages() {
+        try {
+            FileInputStream fileIn = new FileInputStream("messages.ser");
+            ObjectInputStream objIn = new ObjectInputStream(fileIn);
+            allMessages = (HashMap<Long, Message>) (objIn.readObject());
+            objIn.close();
+            fileIn.close();
+        } catch (FileNotFoundException fnf) {
+            allMessages = new HashMap<>();
+        } catch (IOException | ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void deserializeUserBoxes() {
+        try {
+            FileInputStream fileIn = new FileInputStream("usersInbox.ser");
+            ObjectInputStream objIn = new ObjectInputStream(fileIn);
+            userInboxs = (HashMap<String, Set<Long>>) (objIn.readObject());
+            objIn.close();
+            fileIn.close();
+        } catch (FileNotFoundException fnf) {
+            userInboxs = new HashMap<>();
+        } catch (IOException | ClassNotFoundException e) {
+            e.printStackTrace();
+        }
     }
 }
