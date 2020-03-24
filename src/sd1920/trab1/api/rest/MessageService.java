@@ -97,6 +97,11 @@ public interface MessageService {
 
 
 	@POST
+	@Path("/postMessageFromDomain/{user}")
+	@Consumes(MediaType.APPLICATION_JSON)
+	long postOtherMessageDomain(Message m, @PathParam("user") String user);
+
+	@POST
 	@Path("/otherDomain/{user}")
 	@Consumes(MediaType.APPLICATION_JSON)
 	void deleteMessageFromOtherDomain(@PathParam("user") String user, Message m);

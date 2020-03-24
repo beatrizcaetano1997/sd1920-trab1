@@ -7,43 +7,49 @@ import java.util.logging.Logger;
 
 import javax.inject.Singleton;
 import javax.ws.rs.*;
-import javax.ws.rs.client.Client;
-import javax.ws.rs.client.ClientBuilder;
-import javax.ws.rs.client.Entity;
-import javax.ws.rs.client.WebTarget;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
+
 import javax.ws.rs.core.Response.Status;
 
-import org.glassfish.jersey.client.ClientConfig;
-import org.glassfish.jersey.client.ClientProperties;
 import sd1920.trab1.api.Message;
 import sd1920.trab1.api.rest.MessageService;
+import sd1920.trab1.core.resources.utils.ClientUtils;
+import sd1920.trab1.core.resources.utils.DeleteMessageQueue;
+import sd1920.trab1.core.resources.utils.PostMessageQueue;
 import sd1920.trab1.core.servers.discovery.Discovery;
 
 @Singleton
 public class MessageResource implements MessageService {
 
-    private static final int CONNECTION_TIMEOUT = 10000;
-    private static final int REPLY_TIMOUT = 600;
-    private static final int MAX_RETRIES = 3;
-    private static final int RETRY_PERIOD = 10000;
     private Random randomNumberGenerator;
 
-    private HashMap<Long, Message> allMessages;
-    private HashMap<String, Set<Long>> userInboxs;
+    private HashMap<Long, Message> allMessages = new HashMap<>();
+    private HashMap<String, Set<Long>> userInboxs = new HashMap<>();
 
     private static Logger Log = Logger.getLogger(MessageResource.class.getName());
     private Discovery discovery;
     private String domain;
+    public ClientUtils clientUtils;
+    private PostMessageQueue mq;
+    private DeleteMessageQueue dq;
 
 
     public MessageResource(Discovery discovery, String domain) {
         this.randomNumberGenerator = new Random(System.currentTimeMillis());
         this.discovery = discovery;
         this.domain = domain;
-        deserializeMessages();
-        deserializeUserBoxes();
+        clientUtils = new ClientUtils();
+        //Creates the handler for delivering failed messages
+        mq = new PostMessageQueue(this);
+        Thread postMessagesHandler = new Thread(mq);
+        postMessagesHandler.start();
+
+        //creates the handler for deleting messages
+        dq = new DeleteMessageQueue(this);
+        Thread deleteMessageHandler = new Thread(dq);
+        deleteMessageHandler.start();
+
+//        deserializeMessages();
+//        deserializeUserBoxes();
     }
 
     @Override
@@ -53,14 +59,12 @@ public class MessageResource implements MessageService {
         if (msg.getSender() == null || msg.getDestination() == null || msg.getDestination().size() == 0) {
             throw new WebApplicationException(Status.CONFLICT);
         }
-        //If password is null, we are assuming the message comes from otherDomain so there is no need to verify the password
-        //only place the message in the message box
-        if (pwd != null) {
-            Response response = verifyUser(msg.getSender(), pwd);
 
-            if (response.getStatus() == Status.FORBIDDEN.getStatusCode()) {
-                throw new WebApplicationException((Status.FORBIDDEN));
-            }
+        boolean userExists = clientUtils.checkUser(getURI(domain, "users"), msg.getSender(), pwd);
+
+        //Check if a user is valid
+        if (!userExists) {
+            throw new WebApplicationException((Status.FORBIDDEN));
         }
 
         long newID = Math.abs(randomNumberGenerator.nextLong());
@@ -70,44 +74,41 @@ public class MessageResource implements MessageService {
             }
 
             msg.setId(newID);
-            //Add the message to the global list of messages
+//            Add the message to the global list of messages
             allMessages.put(newID, msg);
-            updateOnWriteMessageBox();
+//            updateOnWriteMessageBox();
         }
         Log.info("Created new message with id: " + newID);
 
+        Map<String, Long> otherDomains = new HashMap<>();
         //Add the message (identifier) to the inbox of each recipient
         for (String recipient : msg.getDestination()) {
-            if (!recipient.split("@")[1].equals(domain)) {
+            String userDomain = recipient.split("@")[1];
+            if (!userDomain.equals(domain)) {
                 //Makes sure that the destination is only 1 and not all, to avoid server loops
-                Message toSend = getMessage(msg, recipient);
-                short retries = 0;
-                boolean sucess = false;
-                while (!sucess && retries < MAX_RETRIES) {
-                    try {
-                        //PostMessage RMI to other server
-                        //FIXME: cuidado com o erro 500
-                        Response r = webTarget(recipient.split("@")[1], "messages")
-                                .queryParam("pwd", (Object) null)
-                                .request().accept(MediaType.APPLICATION_JSON)
-                                .post(Entity.entity(toSend, MediaType.APPLICATION_JSON));
+                //Message toSend = getMessage(msg, recipient);
+                long midFromOtherDomain = -1;
 
-                        if (r.getStatus() == Status.OK.getStatusCode()) {
-                            sucess = true;
-                        }
+                if (!otherDomains.containsKey(userDomain)) {
+                    Message toSend = getMessage(msg);
+                    midFromOtherDomain = clientUtils.postOtherDomainMessage(getURI(recipient.split("@")[1], "messages"), toSend, recipient);
 
-                    } catch (ProcessingException pe) {
-                        retries++;
-                        try {
-                            Thread.sleep(RETRY_PERIOD);
-                        } catch (InterruptedException ignored) {
+                    if (midFromOtherDomain != -1)
+                        otherDomains.put(userDomain, midFromOtherDomain);
 
-                        }
-                    }
+                } else {
+                    Long mid = otherDomains.get(userDomain);
+                    Message m = getMessage(msg);
+                    m.setId(mid);
+                    midFromOtherDomain = clientUtils.postOtherDomainMessage(getURI(recipient.split("@")[1], "messages"), m, recipient);
+
                 }
 
-                if (!sucess) {
-                    //GERA MENSAGEM DE ERRO QUE  -> MENSAGEM NAO FOI ENVIADA ->
+                //verificação se a mensagem foi realmente enviada
+                if (midFromOtherDomain == -1) {
+
+                    mq.addMessage(msg, newID, recipient);
+
                     //FALHA NO ENVIO DE mid PARA user
                     userFailedMessage(msg, newID, recipient);
                 }
@@ -118,12 +119,13 @@ public class MessageResource implements MessageService {
                         userInboxs.put(recipient, new HashSet<>());
                     }
                     userInboxs.get(recipient).add(newID);
-                    updateOnWriteMessageBox();
+//                    updateOnWriteMessageBox();
                 }
             }
         }
 
         Log.info("Recorded message with identifier: " + newID);
+        userInboxs.get(msg.getSender()).add(newID);
         return newID;
     }
 
@@ -131,12 +133,13 @@ public class MessageResource implements MessageService {
     @Override
     public Message getMessage(String user, long mid, String pwd) {
         Log.info("Received request for message with id: " + mid + ".");
-        Response response = verifyUser(user, pwd);
 
+        boolean userExists = clientUtils.checkUser(getURI(domain, "users"), user, pwd);
 
-        if (response.getStatus() == Status.FORBIDDEN.getStatusCode()) {
+        if (!userExists) {
             throw new WebApplicationException((Status.FORBIDDEN));
         }
+
         Message m;
 
         synchronized (this) {
@@ -157,15 +160,14 @@ public class MessageResource implements MessageService {
     @Override
     public List<Long> getMessages(String user, String pwd) {
         Log.info("Received request for messages with optional user parameter set to: '" + user + "'");
+
         List<Long> messages = new LinkedList<>();
 
-        Response response = verifyUser(user, pwd);
+        boolean userExists = clientUtils.checkUser(getURI(domain, "users"), user, pwd);
 
-
-        if (response.getStatus() == Status.FORBIDDEN.getStatusCode()) {
+        if (!userExists) {
             throw new WebApplicationException((Status.FORBIDDEN));
         }
-
 
         Log.info("Collecting all messages in server for user " + user);
         Set<Long> mids;
@@ -186,16 +188,15 @@ public class MessageResource implements MessageService {
     @Override
     public void removeFromUserInbox(String user, long mid, String pwd) {
 
-        Response response = verifyUser(user, pwd);
+        boolean userExists = clientUtils.checkUser(getURI(domain, "users"), user, pwd);
 
-
-        if (response.getStatus() == Status.FORBIDDEN.getStatusCode()) {
+        if (!userExists) {
             throw new WebApplicationException((Status.FORBIDDEN));
         }
 
         synchronized (this) {
             userInboxs.get(user).remove(mid);
-            updateOnWriteMessageBox();
+//            updateOnWriteMessageBox();
         }
 
     }
@@ -210,10 +211,10 @@ public class MessageResource implements MessageService {
             }
         }
 
-        Response response = verifyUser(user, pwd);
+        boolean userExists = clientUtils.checkUser(getURI(domain, "users"), user, pwd);
 
 
-        if (response.getStatus() == Status.FORBIDDEN.getStatusCode()) {
+        if (!userExists) {
             throw new WebApplicationException((Status.FORBIDDEN));
         }
 
@@ -222,7 +223,7 @@ public class MessageResource implements MessageService {
             Message msg;
             synchronized (this) {
                 msg = allMessages.remove(mid);
-                updateOnWriteMessageBox();
+//                updateOnWriteMessageBox();
             }
 
             Set<String> msgDestination = msg.getDestination();
@@ -231,19 +232,67 @@ public class MessageResource implements MessageService {
                 if (!user_dest.split("@")[1].equals(domain)) {
                     Message m = new Message();
                     m.setCreationTime(msg.getCreationTime());
-                    webTarget(user_dest.split("@")[1], "messages").path("/otherDomain/" + user_dest)
-                            .request().accept(MediaType.APPLICATION_JSON)
-                            .post(Entity.entity(m, MediaType.APPLICATION_JSON));
+                    boolean success = clientUtils.deleteOtherDomainMessage(getURI(user_dest.split("@")[1], "messages"), user_dest, m);
+                    if (!success) {
+                        dq.addMessage(msg, user_dest);
+                    }
                 } else {
                     synchronized (this) {
                         userInboxs.get(user_dest).remove(mid);
-                        updateOnWriteUserInbox();
+//                        updateOnWriteUserInbox();
 
                     }
                 }
             }
         }
 
+    }
+
+    @Override
+    public long postOtherMessageDomain(Message m, String user) {
+        long newID = m.getId();
+        if (newID == -1) {
+            //checks if a message that came from the message queu exists by checking the timestamp
+            long check = checkTimestamp(m.getCreationTime());
+            if (check == -1) {
+
+                //creates new message in the domain and stores it
+                newID = Math.abs(randomNumberGenerator.nextLong());
+                synchronized (this) {
+                    while (allMessages.containsKey(newID)) {
+                        newID = Math.abs(randomNumberGenerator.nextLong());
+                    }
+
+                    m.setId(newID);
+//            Add the message to the global list of messages
+                    allMessages.put(newID, m);
+                    Log.info("Created new message with id: " + newID);
+
+//            updateOnWriteMessageBox();
+                }
+            } else
+                newID = check;
+        }
+
+        synchronized (this) {
+            if (!userInboxs.containsKey(user)) {
+                userInboxs.put(user, new HashSet<>());
+            }
+            userInboxs.get(user).add(newID);
+//                    updateOnWriteMessageBox();
+        }
+
+        //places
+
+        return 0;
+    }
+
+    private long checkTimestamp(long creationTime) {
+        for (long m : allMessages.keySet()) {
+            if (allMessages.get(m).getCreationTime() == creationTime)
+                return m;
+        }
+        return -1;
     }
 
     //method to delete messages from other domains
@@ -256,9 +305,9 @@ public class MessageResource implements MessageService {
         for (long s : set) {
             if (allMessages.get(s).getCreationTime() == m.getCreationTime()) {
                 Message removed = allMessages.remove(s);
-                updateOnWriteMessageBox();
+//                updateOnWriteMessageBox();
                 userInboxs.get(user).remove(removed.getId());
-                updateOnWriteUserInbox();
+//                updateOnWriteUserInbox();
 
             }
         }
@@ -269,36 +318,11 @@ public class MessageResource implements MessageService {
     public void deleteUserInbox(String user) {
         synchronized (this) {
             userInboxs.remove(user);
-            updateOnWriteUserInbox();
+//            updateOnWriteUserInbox();
         }
     }
 
-    private Response verifyUser(String user, String pwd) {
-        boolean sucess = false;
-        short retries = 0;
-        Response r = null;
-        while (!sucess && retries < MAX_RETRIES) {
-            try {
-                r = webTarget(domain, "users").path(user.split("@")[0]).queryParam("pwd", pwd)
-                        .request(MediaType.APPLICATION_JSON)
-                        .accept(MediaType.APPLICATION_JSON_TYPE).get();
-                sucess = true;
-
-            } catch (ProcessingException pe) {
-                //timeout happened
-                retries++;
-
-                try {
-                    Thread.sleep(RETRY_PERIOD);
-                } catch (InterruptedException ignored) {
-                    //nothing to be done here, if it happens, it will retry sooner
-                }
-            }
-        }
-
-        return r;
-    }
-
+    //PRIVATE UTIL METHODS
     private void userFailedMessage(Message msg, long newID, String recipient) {
         Message toUserMessage = new Message();
 
@@ -316,37 +340,34 @@ public class MessageResource implements MessageService {
         synchronized (this) {
             allMessages.put(newFailedMessageID, toUserMessage);
             userInboxs.get(msg.getSender()).add(newFailedMessageID);
-            updateOnWriteMessageBox();
-            updateOnWriteUserInbox();
+//            updateOnWriteMessageBox();
+//            updateOnWriteUserInbox();
         }
     }
 
-    private WebTarget webTarget(String domain, String serviceType) {
+    public URI getURI(String domain, String serviceType) {
 
-        ClientConfig config = new ClientConfig();
-        config.property(ClientProperties.CONNECT_TIMEOUT, CONNECTION_TIMEOUT);
-        config.property(ClientProperties.READ_TIMEOUT, REPLY_TIMOUT);
-        Client client = ClientBuilder.newClient(config);
+
         URI[] l = discovery.knownUrisOf(domain);
         for (URI uri : l) {
             if (uri.toString().contains(serviceType)) {
-                return client.target(uri);
+                return uri;
             }
         }
         return null;
     }
 
-    private Message getMessage(Message msg, String recipient) {
+    private Message getMessage(Message msg) {
         Message toSend = new Message();
         toSend.setCreationTime(msg.getCreationTime());
-        Set<String> destin = new HashSet<>();
-        destin.add(recipient);
-        toSend.setDestination(destin);
+        toSend.setDestination(msg.getDestination());
         toSend.setContents(msg.getContents());
         toSend.setSender(msg.getSender());
         toSend.setSubject(msg.getSubject());
+        toSend.setId(-1);
         return toSend;
     }
+
     //Serialize and Deserialize methods
 
     private void updateOnWriteUserInbox() {
@@ -402,6 +423,17 @@ public class MessageResource implements MessageService {
             userInboxs = new HashMap<>();
         } catch (IOException | ClassNotFoundException e) {
             e.printStackTrace();
+        }
+    }
+
+    public void deleteFailedMessage(long mid, String user, String recipient) {
+        synchronized (this) {
+            for (long mids : userInboxs.get(user)) {
+                if (allMessages.get(mids).getSubject().equals("FALHA NO ENVIO DE " + mid + " " + recipient)) {
+                    allMessages.remove(mids);
+                    userInboxs.get(user).remove(mids);
+                }
+            }
         }
     }
 }

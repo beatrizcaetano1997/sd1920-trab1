@@ -25,7 +25,7 @@ public class DomainServer {
 		System.setProperty("java.util.logging.SimpleFormatter.format", "%4$s: %5$s\n");
 	}
 	
-	public static final int PORT = 8082;
+	public static final int PORT = 8081;
 	public static final String MESSAGE_SERVICE = "MessageService";
 	public static final String USER_SERVICE = "UserService";
 
@@ -35,7 +35,9 @@ public class DomainServer {
 		ExecutorService usersPool = Executors.newFixedThreadPool(15);
 
 		String ip = InetAddress.getLocalHost().getHostAddress();
-		String domain = InetAddress.getLocalHost().getHostName();
+
+		//para correr sem ser no docker, mudar a string para "fct" ou "fcsh" por exemplo
+		String domain ="fct";// InetAddress.getLocalHost().getHostName();
 
 		ResourceConfig config = new ResourceConfig();
 

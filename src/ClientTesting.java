@@ -54,6 +54,8 @@ public class ClientTesting {
         WebTarget fctUserTarget = buildTarget(userFctURI);
         //Creates an fct messageClient
         WebTarget fctMessageTarget = buildTarget(messageFctURI);
+        Log.info("--------------------------STARTIN TEST BATTEY-----------------------------------------------\n");
+        Log.info("--------------------------BASIC REST API----------------------------------------------------\n");
 
         //1 - Create a User from fct
         Log.info("Testing Create user at fct" + '\n');
@@ -133,9 +135,8 @@ public class ClientTesting {
 
 //        LinkedList<Long> messageList = r.readEntity(new GenericType<LinkedList<Long>>() {
 //        });
-        Log.info("Listing paulo messages ------------------>: " + '\n');
         for (Long id : messageList) {
-            Log.info("ID------------>: " + id +'\n');
+            Log.info("\t + ID------------>: " + id +'\n');
         }
         Log.info("\n");
 
@@ -192,9 +193,8 @@ public class ClientTesting {
         List<Long> messageList2 = gson2.fromJson(listString2, type2);
         //List<Long> messageList2 = r.readEntity(new GenericType<List<Long>>() {
         //});
-        Log.info("Listing rute messages ------------------>: " + '\n');
         for (Long id : messageList2) {
-            Log.info("ID------------>: " + id.toString() + '\n');
+            Log.info("\t + ID------------>: " + id +'\n');
         }
         Log.info("\n");
 
@@ -211,6 +211,10 @@ public class ClientTesting {
         Log.info("Response from deleting message :  ------------------>: " + r.getStatus() + '\n');
 
         Log.info("\n");
+
+        Log.info("--------------------------STARTIN CONCURRENCY-----------------------------------------------\n");
+
+        Thread newT = new Thread();
 
         Log.info("TEST BATTERY CONCLUDED :D YAY");
 
