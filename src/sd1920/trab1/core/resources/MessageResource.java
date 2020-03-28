@@ -11,6 +11,7 @@ import javax.ws.rs.*;
 import javax.ws.rs.core.Response.Status;
 
 import sd1920.trab1.api.Message;
+import sd1920.trab1.api.User;
 import sd1920.trab1.api.rest.MessageService;
 import sd1920.trab1.core.resources.utils.ClientUtils;
 import sd1920.trab1.core.resources.utils.DeleteMessageQueue;
@@ -39,14 +40,14 @@ public class MessageResource implements MessageService {
         this.domain = domain;
         clientUtils = new ClientUtils();
         //Creates the handler for delivering failed messages
-        mq = new PostMessageQueue(this);
-        Thread postMessagesHandler = new Thread(mq);
-        postMessagesHandler.start();
+//        mq = new PostMessageQueue(this);
+//        Thread postMessagesHandler = new Thread(mq);
+//        postMessagesHandler.start();
 
-        //creates the handler for deleting messages
-        dq = new DeleteMessageQueue(this);
-        Thread deleteMessageHandler = new Thread(dq);
-        deleteMessageHandler.start();
+//        //creates the handler for deleting messages
+//        dq = new DeleteMessageQueue(this);
+//        Thread deleteMessageHandler = new Thread(dq);
+//        deleteMessageHandler.start();
 
 //        deserializeMessages();
 //        deserializeUserBoxes();
@@ -60,10 +61,11 @@ public class MessageResource implements MessageService {
             throw new WebApplicationException(Status.CONFLICT);
         }
 
-        boolean userExists = clientUtils.checkUser(getURI(domain, "users"), msg.getSender(), pwd);
+        
+        User userExists = clientUtils.checkUser(getURI(domain, "users"), msg.getSender(), pwd);
 
         //Check if a user is valid
-        if (!userExists) {
+        if (userExists == null) {
             throw new WebApplicationException((Status.FORBIDDEN));
         }
 
@@ -75,6 +77,8 @@ public class MessageResource implements MessageService {
 
             msg.setId(newID);
 //            Add the message to the global list of messages
+            String senderFormated = userExists.getDisplayName() + " <" + userExists.getName()+"@"+domain + ">";
+            msg.setSender(senderFormated);
             allMessages.put(newID, msg);
 //            updateOnWriteMessageBox();
         }
@@ -107,25 +111,32 @@ public class MessageResource implements MessageService {
                 //verificação se a mensagem foi realmente enviada
                 if (midFromOtherDomain == -1) {
 
-                    mq.addMessage(msg, newID, recipient);
+//                    mq.addMessage(msg, newID, recipient);
 
                     //FALHA NO ENVIO DE mid PARA user
                     userFailedMessage(msg, newID, recipient);
                 }
 
             } else {
-                synchronized (this) {
-                    if (!userInboxs.containsKey(recipient)) {
-                        userInboxs.put(recipient, new HashSet<>());
-                    }
-                    userInboxs.get(recipient).add(newID);
+
+                String chk = clientUtils.userExists(recipient, getURI(domain, "users"));
+                if (chk != null) {
+                    synchronized (this) {
+                        if (!userInboxs.containsKey(recipient)) {
+                            userInboxs.put(recipient, new HashSet<>());
+                        }
+                        userInboxs.get(recipient).add(newID);
 //                    updateOnWriteMessageBox();
+                    }
+                } else {
+//                    mq.addMessage(msg, newID, recipient);
+                    userFailedMessage(msg, newID, recipient);
                 }
             }
         }
 
         Log.info("Recorded message with identifier: " + newID);
-        userInboxs.get(msg.getSender()).add(newID);
+//        userInboxs.get(msg.getSender()).add(newID);
         return newID;
     }
 
@@ -134,9 +145,10 @@ public class MessageResource implements MessageService {
     public Message getMessage(String user, long mid, String pwd) {
         Log.info("Received request for message with id: " + mid + ".");
 
-        boolean userExists = clientUtils.checkUser(getURI(domain, "users"), user, pwd);
+        User userExists = clientUtils.checkUser(getURI(domain, "users"), user, pwd);
 
-        if (!userExists) {
+        //Check if a user is valid
+        if (userExists == null) {
             throw new WebApplicationException((Status.FORBIDDEN));
         }
 
@@ -163,9 +175,10 @@ public class MessageResource implements MessageService {
 
         List<Long> messages = new LinkedList<>();
 
-        boolean userExists = clientUtils.checkUser(getURI(domain, "users"), user, pwd);
+        User userExists = clientUtils.checkUser(getURI(domain, "users"), user, pwd);
 
-        if (!userExists) {
+        //Check if a user is valid
+        if (userExists == null) {
             throw new WebApplicationException((Status.FORBIDDEN));
         }
 
@@ -188,9 +201,10 @@ public class MessageResource implements MessageService {
     @Override
     public void removeFromUserInbox(String user, long mid, String pwd) {
 
-        boolean userExists = clientUtils.checkUser(getURI(domain, "users"), user, pwd);
+        User userExists = clientUtils.checkUser(getURI(domain, "users"), user, pwd);
 
-        if (!userExists) {
+        //Check if a user is valid
+        if (userExists == null) {
             throw new WebApplicationException((Status.FORBIDDEN));
         }
 
@@ -211,80 +225,79 @@ public class MessageResource implements MessageService {
             }
         }
 
-        boolean userExists = clientUtils.checkUser(getURI(domain, "users"), user, pwd);
+        User userExists = clientUtils.checkUser(getURI(domain, "users"), user, pwd);
 
-
-        if (!userExists) {
+        //Check if a user is valid
+        if (userExists == null) {
             throw new WebApplicationException((Status.FORBIDDEN));
         }
 
 
+        Message msg;
         synchronized (this) {
-            Message msg;
-            synchronized (this) {
-                msg = allMessages.remove(mid);
+            msg = allMessages.remove(mid);
 //                updateOnWriteMessageBox();
-            }
+        }
 
-            Set<String> msgDestination = msg.getDestination();
+        Set<String> msgDestination = msg.getDestination();
 
-            for (String user_dest : msgDestination) {
-                if (!user_dest.split("@")[1].equals(domain)) {
-                    Message m = new Message();
-                    m.setCreationTime(msg.getCreationTime());
-                    boolean success = clientUtils.deleteOtherDomainMessage(getURI(user_dest.split("@")[1], "messages"), user_dest, m);
-                    if (!success) {
-                        dq.addMessage(msg, user_dest);
-                    }
-                } else {
-                    synchronized (this) {
-                        userInboxs.get(user_dest).remove(mid);
+        for (String user_dest : msgDestination) {
+            if (!user_dest.split("@")[1].equals(domain)) {
+                Message m = new Message();
+                m.setCreationTime(msg.getCreationTime());
+                boolean success = clientUtils.deleteOtherDomainMessage(getURI(user_dest.split("@")[1], "messages"), user_dest, m);
+                if (!success) {
+                    dq.addMessage(msg, user_dest);
+                }
+            } else {
+                synchronized (this) {
+                    userInboxs.get(user_dest).remove(mid);
 //                        updateOnWriteUserInbox();
 
-                    }
                 }
             }
         }
-
     }
 
     @Override
     public long postOtherMessageDomain(Message m, String user) {
-        long newID = m.getId();
-        if (newID == -1) {
-            //checks if a message that came from the message queu exists by checking the timestamp
-            long check = checkTimestamp(m.getCreationTime());
-            if (check == -1) {
+        String chk = clientUtils.userExists(user, getURI(domain, "users"));
+        if (chk != null) {
+            long newID = m.getId();
+            if (newID == -1) {
+                //checks if a message that came from the message queu exists by checking the timestamp
+                long check = checkTimestamp(m.getCreationTime());
+                if (check == -1) {
 
-                //creates new message in the domain and stores it
-                newID = Math.abs(randomNumberGenerator.nextLong());
-                synchronized (this) {
-                    while (allMessages.containsKey(newID)) {
-                        newID = Math.abs(randomNumberGenerator.nextLong());
-                    }
+                    //creates new message in the domain and stores it
+                    newID = Math.abs(randomNumberGenerator.nextLong());
+                    synchronized (this) {
+                        while (allMessages.containsKey(newID)) {
+                            newID = Math.abs(randomNumberGenerator.nextLong());
+                        }
 
-                    m.setId(newID);
+                        m.setId(newID);
 //            Add the message to the global list of messages
-                    allMessages.put(newID, m);
-                    Log.info("Created new message with id: " + newID);
+                        allMessages.put(newID, m);
+                        Log.info("Created new message with id: " + newID);
 
 //            updateOnWriteMessageBox();
-                }
-            } else
-                newID = check;
-        }
-
-        synchronized (this) {
-            if (!userInboxs.containsKey(user)) {
-                userInboxs.put(user, new HashSet<>());
+                    }
+                } else
+                    newID = check;
             }
-            userInboxs.get(user).add(newID);
+
+            synchronized (this) {
+                if (!userInboxs.containsKey(user)) {
+                    userInboxs.put(user, new HashSet<>());
+                }
+                userInboxs.get(user).add(newID);
 //                    updateOnWriteMessageBox();
+            }
+            return newID;
+        } else {
+            throw new WebApplicationException((Status.NOT_FOUND));
         }
-
-        //places
-
-        return 0;
     }
 
     private long checkTimestamp(long creationTime) {

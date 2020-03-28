@@ -16,61 +16,71 @@ import sd1920.trab1.api.User;
 @Path(UserService.PATH)
 public interface UserService {
 
-	final static String PATH = "/users";
-	
-	/**
-	 * Creates a new user in the local domain.
-	 * @param user User to be created
-	 * @return 200: the address of the user (name@domain).
-	 * 403 if the domain in the user does not match the domain of the server
-	 * 409 if either name, pwd, or domain and null
-	 */
-	@POST
-	@Path("/")
-	@Consumes(MediaType.APPLICATION_JSON)
-	@Produces(MediaType.APPLICATION_JSON)
-	public String postUser(User user);
-	
-	/**
-	 * Obtains the information on the user identified by name
-	 * @param name the name of the user
-	 * @param pwd password of the user (or a special password)
-	 * @return the user object, if the name exists and pwd matches the existing password 
-	 * (or is the a special password allowing all operations);
-	 * 409 otherwise
-	 */
-	@GET
-	@Path("/{name}")
-	@Produces(MediaType.APPLICATION_JSON)
-	public User getUser(@PathParam("name") String name, @QueryParam("pwd") String pwd);
-	
-	/**
-	 * Modifies the information of a user. Values of null in any field of the user will be 
-	 * considered as if the the fields is not to be modified (the name cannot be modified).
-	 * @param name the name of the user
-	 * @param pwd password of the user (or a special password)
-	 * @param user Updated information
-	 * @return the updated user object, if the name exists and pwd matches the existing password 
-	 * (or is the a special password allowing all operations);
-	 * 409 otherwise
-	 */
-	@PUT
-	@Path("/{name}")
-	@Consumes(MediaType.APPLICATION_JSON)
-	@Produces(MediaType.APPLICATION_JSON)
-	public User updateUser(@PathParam("name") String name, @QueryParam("pwd") String pwd, User user);
-	
-	/**
-	 * Deletes the user identified by name
-	 * @param name the name of the user
-	 * @param pwd password of the user (or a special password)
-	 * @return the deleted user object, if the name exists and pwd matches the existing password 
-	 * (or is the a special password allowing all operations);
-	 * 409 otherwise
-	 */
-	@DELETE
-	@Path("/{name}")
-	@Produces(MediaType.APPLICATION_JSON)
-	public User deleteUser(@PathParam("name") String user, @QueryParam("pwd") String pwd);
-	
+    final static String PATH = "/users";
+
+    /**
+     * Creates a new user in the local domain.
+     *
+     * @param user User to be created
+     * @return 200: the address of the user (name@domain).
+     * 403 if the domain in the user does not match the domain of the server
+     * 409 if either name, pwd, or domain and null
+     */
+    @POST
+    @Path("/")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    public String postUser(User user);
+
+    /**
+     * Obtains the information on the user identified by name
+     *
+     * @param name the name of the user
+     * @param pwd  password of the user (or a special password)
+     * @return the user object, if the name exists and pwd matches the existing password
+     * (or is the a special password allowing all operations);
+     * 409 otherwise
+     */
+    @GET
+    @Path("/{name}")
+    @Produces(MediaType.APPLICATION_JSON)
+    public User getUser(@PathParam("name") String name, @QueryParam("pwd") String pwd);
+
+    /**
+     * Modifies the information of a user. Values of null in any field of the user will be
+     * considered as if the the fields is not to be modified (the name cannot be modified).
+     *
+     * @param name the name of the user
+     * @param pwd  password of the user (or a special password)
+     * @param user Updated information
+     * @return the updated user object, if the name exists and pwd matches the existing password
+     * (or is the a special password allowing all operations);
+     * 409 otherwise
+     */
+    @PUT
+    @Path("/{name}")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    public User updateUser(@PathParam("name") String name, @QueryParam("pwd") String pwd, User user);
+
+
+    @GET
+    @Path("/userExists/{user}")
+    @Produces(MediaType.APPLICATION_JSON)
+    public String checkIfUserExists(@PathParam("user") String user);
+
+    /**
+     * Deletes the user identified by name
+     *
+     * @param name the name of the user
+     * @param pwd  password of the user (or a special password)
+     * @return the deleted user object, if the name exists and pwd matches the existing password
+     * (or is the a special password allowing all operations);
+     * 409 otherwise
+     */
+    @DELETE
+    @Path("/{name}")
+    @Produces(MediaType.APPLICATION_JSON)
+    public User deleteUser(@PathParam("name") String user, @QueryParam("pwd") String pwd);
+
 }

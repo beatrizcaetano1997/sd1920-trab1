@@ -1,12 +1,13 @@
 package sd1920.trab1.core.resources.utils;
 
 import sd1920.trab1.api.Message;
+import sd1920.trab1.api.User;
 
 import java.net.URI;
 
 public interface ClientUtilsInterface {
     //In every method to verify the user
-    boolean checkUser(URI uri, String user, String pwd);
+    User checkUser(URI uri, String user, String pwd);
 
     //When posting a message in other domain server ex -> postMessage
     Long postOtherDomainMessage(URI uri, Message message, String user);

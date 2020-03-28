@@ -37,7 +37,7 @@ public class DomainServer {
 		String ip = InetAddress.getLocalHost().getHostAddress();
 
 		//para correr sem ser no docker, mudar a string para "fct" ou "fcsh" por exemplo
-		String domain ="fct";// InetAddress.getLocalHost().getHostName();
+		String domain = InetAddress.getLocalHost().getHostName();
 
 		ResourceConfig config = new ResourceConfig();
 

@@ -3,6 +3,7 @@ package sd1920.trab1.core.resources.utils;
 import org.glassfish.jersey.client.ClientConfig;
 import org.glassfish.jersey.client.ClientProperties;
 import sd1920.trab1.api.Message;
+import sd1920.trab1.api.User;
 
 import javax.ws.rs.ProcessingException;
 import javax.ws.rs.client.Client;
@@ -12,39 +13,50 @@ import javax.ws.rs.core.GenericType;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.net.URI;
+import java.util.concurrent.TimeoutException;
 
 public class ClientUtils implements ClientUtilsInterface {
     private static final int CONNECTION_TIMEOUT = 10000;
-    private static final int REPLY_TIMOUT = 600;
+    private static final int REPLY_TIMOUT = 10000;
     private static final int MAX_RETRIES = 3;
-    private static final int RETRY_PERIOD = 10000;
+    private static final int RETRY_PERIOD = 1000;
 
     Client client;
     ClientConfig config;
 
 
     public ClientUtils() {
-        config = new ClientConfig();
-        client = ClientBuilder.newClient(config);
-        config.property(ClientProperties.CONNECT_TIMEOUT, CONNECTION_TIMEOUT);
-        config.property(ClientProperties.READ_TIMEOUT, REPLY_TIMOUT);
+
+
     }
 
     //In every method to verify the user
     @Override
-    public boolean checkUser(URI uri, String user, String pwd) {
+    public User checkUser(URI uri, String user, String pwd) {
+
+        config = new ClientConfig();
+        config.property(ClientProperties.CONNECT_TIMEOUT, CONNECTION_TIMEOUT);
+        config.property(ClientProperties.READ_TIMEOUT, REPLY_TIMOUT);
+        client = ClientBuilder.newClient(config);
 
         boolean success = false;
         short retries = 0;
+        User receivedUser = null;
 
         Response r = null;
         while (!success && retries < MAX_RETRIES) {
             try {
-                r = client.target(uri).path(user.split("@")[0]).queryParam("pwd", pwd)
+                r = client.target(uri).path("/users/"+user).queryParam("pwd", pwd)
                         .request(MediaType.APPLICATION_JSON)
                         .accept(MediaType.APPLICATION_JSON_TYPE).get();
-                success = true;
-            } catch (ProcessingException pe) {
+
+                if(r.getStatus() == Response.Status.OK.getStatusCode()){
+                    success = true;
+                    receivedUser = r.readEntity(new GenericType<User>() {
+                    });
+                }
+
+            } catch (ProcessingException e ) {
                 //timeout happened
                 retries++;
 
@@ -56,7 +68,7 @@ public class ClientUtils implements ClientUtilsInterface {
             }
         }
 
-        return success;
+        return receivedUser;
     }
 
     //When posting a message in other domain server ex -> postMessage
@@ -68,7 +80,7 @@ public class ClientUtils implements ClientUtilsInterface {
             try {
 
                 //PostMessage RMI to other server
-                Response r = client.target(uri).path("/postMessageFromDomain/" + user)
+                Response r = client.target(uri).path("/messages/postMessageFromDomain/" + user)
                         .queryParam("pwd", (Object) null)
                         .request().accept(MediaType.APPLICATION_JSON)
                         .post(Entity.entity(message, MediaType.APPLICATION_JSON));
@@ -99,7 +111,7 @@ public class ClientUtils implements ClientUtilsInterface {
         Response r = null;
         while (!success && retries < MAX_RETRIES) {
             try {
-                r = client.target(uri).path("/otherDomain/" + user)
+                r = client.target(uri).path("/messages/therDomain/" + user)
                         .request().accept(MediaType.APPLICATION_JSON)
                         .post(Entity.entity(m, MediaType.APPLICATION_JSON));
                 if (r.getStatus() == Response.Status.NO_CONTENT.getStatusCode())
@@ -130,7 +142,7 @@ public class ClientUtils implements ClientUtilsInterface {
         Response r = null;
         while (!success && retries < MAX_RETRIES) {
             try {
-                r = client.target(uri).path("/deleteUserInbox/" + user).request().delete();
+                r = client.target(uri).path("/messages/deleteUserInbox/" + user).request().delete();
 
                 success = true;
             } catch (ProcessingException pe) {
@@ -146,5 +158,45 @@ public class ClientUtils implements ClientUtilsInterface {
         }
 
         return success;
+    }
+
+    public String userExists(String user, URI uri) {
+
+        config = new ClientConfig();
+        config.property(ClientProperties.CONNECT_TIMEOUT, CONNECTION_TIMEOUT);
+        config.property(ClientProperties.READ_TIMEOUT, REPLY_TIMOUT);
+        client = ClientBuilder.newClient(config);
+
+        boolean success = false;
+        short retries = 0;
+        String receivedUser = null;
+
+        Response r = null;
+        while (!success && retries < MAX_RETRIES) {
+            try {
+                r = client.target(uri).path("/users/userExists/"+ user.split("@")[0])
+                        .request()
+                        .accept(MediaType.APPLICATION_JSON_TYPE).get();
+
+                if(r.getStatus() == Response.Status.OK.getStatusCode()){
+                    success = true;
+                    receivedUser = r.readEntity(new GenericType<String>() {
+                    });
+                }
+
+            } catch (ProcessingException pe) {
+                //timeout happened
+                retries++;
+
+                try {
+                    Thread.sleep(RETRY_PERIOD);
+                } catch (InterruptedException ignored) {
+                    //nothing to be done here, if it happens, it will retry sooner
+                }
+            }
+        }
+
+        return receivedUser;
+
     }
 }

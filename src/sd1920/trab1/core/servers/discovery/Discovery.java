@@ -45,7 +45,6 @@ public class Discovery {
     private Map<String, URI> uriMessagesMap = new HashMap<>();
 
 
-
     /**
      * @param serviceName the name of the service to announce
      * @param serviceURI  an uri string - representing the contact endpoint of the service being announced
@@ -104,15 +103,20 @@ public class Discovery {
 //                            System.out.printf("FROM %s (%s) : %s\n",
 //                                    pkt.getAddress().getCanonicalHostName(),
 //                                    pkt.getAddress().getHostAddress(), msg);
-                            if(uriService.toString().contains("users")){
+                            if (uriService.toString().contains("users")) {
                                 uriUsersMap.put(msgElems[0], uriService);
-                            }else{
+                            } else {
                                 uriMessagesMap.put(msgElems[0], uriService);
                             }
 
                         }
+                    } catch (SocketTimeoutException e) {
+                        try {
+                            Thread.sleep(1000);
+                        } catch (InterruptedException ignore) {
+                        }
                     } catch (IOException e) {
-                        // do nothing
+                        e.printStackTrace();
                     }
                 }
             }).start();
@@ -141,9 +145,9 @@ public class Discovery {
 //                            System.out.printf("FROM %s (%s) : %s\n",
 //                                    pkt.getAddress().getCanonicalHostName(),
 //                                    pkt.getAddress().getHostAddress(), msg);
-                            if(uriService.toString().contains("users")){
+                            if (uriService.toString().contains("users")) {
                                 uriUsersMap.put(msgElems[0], uriService);
-                            }else{
+                            } else {
                                 uriMessagesMap.put(msgElems[0], uriService);
                             }
 

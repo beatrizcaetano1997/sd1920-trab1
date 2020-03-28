@@ -26,32 +26,55 @@ public class UsersResource implements UserService {
         this.domain = domain;
         this.discovery = discovery;
         clientUtils = new ClientUtils();
-//        deserializeUsers();
     }
 
     @Override
     public String postUser(User user) {
-        if (!user.getDomain().equals(domain)) {
-            throw new WebApplicationException(Status.FORBIDDEN);
+
+
+        if (user.getName() == null || user.getName().isEmpty()) {
+            throw new WebApplicationException(Status.CONFLICT);
+
         }
 
-        if (user.getPwd() == null || user.getName() == null || user.getDomain() == null) {
+        if (user.getPwd() == null || user.getPwd().isEmpty()) {
             throw new WebApplicationException(Status.CONFLICT);
+
+        }
+
+        if (user.getDomain() == null || user.getDomain().isEmpty()) {
+            throw new WebApplicationException(Status.CONFLICT);
+
+        }
+
+        if (user.getDisplayName() == null || user.getDisplayName().isEmpty()) {
+            throw new WebApplicationException(Status.CONFLICT);
+
+        }
+
+
+        if (users.containsKey(user.getName())) {
+            throw new WebApplicationException(Status.CONFLICT);
+        }
+
+
+        if (!user.getDomain().equals(domain)) {
+            throw new WebApplicationException(Status.FORBIDDEN);
+
         }
 
         synchronized (this) {
             users.put(user.getName(), user);
-//            updateOnWriteUsers();
         }
 
-        return user.getDisplayName();
+        return user.getName() + "@" + user.getDomain();
     }
 
     @Override
     public User getUser(String name, String pwd) {
         synchronized (this) {
             if (!users.containsKey(name) || !users.get(name).getPwd().equals(pwd)) {
-                throw new WebApplicationException(Status.CONFLICT);
+                throw new WebApplicationException(Status.FORBIDDEN);
             } else {
                 return users.get(name);
             }
@@ -62,12 +85,12 @@ public class UsersResource implements UserService {
     public User updateUser(String name, String pwd, User user) {
 
         synchronized (this) {
-            if (!users.containsKey(name)) {
-                throw new WebApplicationException(Status.NOT_FOUND);
+            if (!users.containsKey(name) || !users.get(name).getPwd().equals(pwd)) {
+                throw new WebApplicationException(Status.FORBIDDEN);
             }
-            if (!users.containsKey(name) && !users.get(name).getPwd().equals(pwd)) {
-                throw new WebApplicationException(Status.CONFLICT);
-            }
+//            if (!users.get(name).getPwd().equals(pwd)) {
+//                throw new WebApplicationException(Status.CONFLICT);
+//            }
 
 
             if (user.getPwd() != null) {
@@ -87,17 +110,23 @@ public class UsersResource implements UserService {
     }
 
     @Override
+    public String checkIfUserExists(String user) {
+        if (users.containsKey(user)) {
+            return users.get(user).getDisplayName();
+        } else
+            throw new WebApplicationException(Status.NOT_FOUND);
+    }
+
+    @Override
     public User deleteUser(String user, String pwd) {
         synchronized (this) {
-            if (!users.containsKey(user) && !users.get(user).getPwd().equals(pwd)) {
-                throw new WebApplicationException(Status.CONFLICT);
+            if (!users.containsKey(user) || !users.get(user).getPwd().equals(pwd)) {
+                throw new WebApplicationException(Status.FORBIDDEN);
             }
 
-            clientUtils.deleteUserInbox(getURI(domain, "messages"),user);
-            User removed = users.remove(user);
-//            updateOnWriteUsers();
+            clientUtils.deleteUserInbox(getURI(domain, "messages"), user);
 
-            return removed;
+            return users.remove(user);
         }
     }
 
@@ -112,31 +141,5 @@ public class UsersResource implements UserService {
         return null;
     }
 
-    private void updateOnWriteUsers() {
-        FileOutputStream fileOut = null;
-        try {
-            fileOut = new FileOutputStream("users.ser");
-            ObjectOutputStream out = new ObjectOutputStream(fileOut);
-            out.writeObject(users);
-            out.close();
-            fileOut.close();
-        } catch (IOException e) {
-            //e.printStackTrace();
-        }
 
-    }
-
-    private void deserializeUsers() {
-        try {
-            FileInputStream fileIn = new FileInputStream("users.ser");
-            ObjectInputStream objIn = new ObjectInputStream(fileIn);
-            users = (HashMap<String, User>) (objIn.readObject());
-            objIn.close();
-            fileIn.close();
-        } catch (FileNotFoundException fnf) {
-            users = new HashMap<>();
-        } catch (IOException | ClassNotFoundException e) {
-            e.printStackTrace();
-        }
-    }
 }
