@@ -16,7 +16,7 @@ import sd1920.trab1.api.User;
 @Path(UserService.PATH)
 public interface UserService {
 
-    final static String PATH = "/users";
+    String PATH = "/users";
 
     /**
      * Creates a new user in the local domain.
@@ -30,7 +30,7 @@ public interface UserService {
     @Path("/")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public String postUser(User user);
+    String postUser(User user);
 
     /**
      * Obtains the information on the user identified by name
@@ -44,7 +44,7 @@ public interface UserService {
     @GET
     @Path("/{name}")
     @Produces(MediaType.APPLICATION_JSON)
-    public User getUser(@PathParam("name") String name, @QueryParam("pwd") String pwd);
+    User getUser(@PathParam("name") String name, @QueryParam("pwd") String pwd);
 
     /**
      * Modifies the information of a user. Values of null in any field of the user will be
@@ -61,18 +61,18 @@ public interface UserService {
     @Path("/{name}")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public User updateUser(@PathParam("name") String name, @QueryParam("pwd") String pwd, User user);
+    User updateUser(@PathParam("name") String name, @QueryParam("pwd") String pwd, User user);
 
 
     @GET
     @Path("/userExists/{user}")
     @Produces(MediaType.APPLICATION_JSON)
-    public String checkIfUserExists(@PathParam("user") String user);
+    String checkIfUserExists(@PathParam("user") String user);
 
     /**
      * Deletes the user identified by name
      *
-     * @param name the name of the user
+     * @param user the name of the user
      * @param pwd  password of the user (or a special password)
      * @return the deleted user object, if the name exists and pwd matches the existing password
      * (or is the a special password allowing all operations);
@@ -81,6 +81,6 @@ public interface UserService {
     @DELETE
     @Path("/{name}")
     @Produces(MediaType.APPLICATION_JSON)
-    public User deleteUser(@PathParam("name") String user, @QueryParam("pwd") String pwd);
+    User deleteUser(@PathParam("name") String user, @QueryParam("pwd") String pwd);
 
 }

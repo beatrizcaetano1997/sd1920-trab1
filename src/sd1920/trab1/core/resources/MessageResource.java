@@ -1,6 +1,5 @@
 package sd1920.trab1.core.resources;
 
-import java.io.*;
 import java.net.URI;
 import java.util.*;
 import java.util.logging.Logger;
@@ -39,18 +38,15 @@ public class MessageResource implements MessageService {
         this.discovery = discovery;
         this.domain = domain;
         clientUtils = new ClientUtils();
-        //Creates the handler for delivering failed messages
+        // Creates the handler for delivering failed messages
 //        mq = new PostMessageQueue(this);
 //        Thread postMessagesHandler = new Thread(mq);
 //        postMessagesHandler.start();
-
+//
 //        //creates the handler for deleting messages
 //        dq = new DeleteMessageQueue(this);
 //        Thread deleteMessageHandler = new Thread(dq);
 //        deleteMessageHandler.start();
-
-//        deserializeMessages();
-//        deserializeUserBoxes();
     }
 
     @Override
@@ -61,8 +57,8 @@ public class MessageResource implements MessageService {
             throw new WebApplicationException(Status.CONFLICT);
         }
 
-        
-        User userExists = clientUtils.checkUser(getURI(domain, "users"), msg.getSender(), pwd);
+
+        User userExists = clientUtils.checkUser(getURI(domain, "users"), msg.getSender().split("@")[0], pwd);
 
         //Check if a user is valid
         if (userExists == null) {
@@ -77,10 +73,10 @@ public class MessageResource implements MessageService {
 
             msg.setId(newID);
 //            Add the message to the global list of messages
-            String senderFormated = userExists.getDisplayName() + " <" + userExists.getName()+"@"+domain + ">";
+            String senderFormated = userExists.getDisplayName() + " <" + userExists.getName() + "@" + domain + ">";
             msg.setSender(senderFormated);
             allMessages.put(newID, msg);
-//            updateOnWriteMessageBox();
+
         }
         Log.info("Created new message with id: " + newID);
 
@@ -88,9 +84,10 @@ public class MessageResource implements MessageService {
         //Add the message (identifier) to the inbox of each recipient
         for (String recipient : msg.getDestination()) {
             String userDomain = recipient.split("@")[1];
+            //FIXME AINDA NAO FOI TESTADO
             if (!userDomain.equals(domain)) {
                 //Makes sure that the destination is only 1 and not all, to avoid server loops
-                //Message toSend = getMessage(msg, recipient);
+
                 long midFromOtherDomain = -1;
 
                 if (!otherDomains.containsKey(userDomain)) {
@@ -111,9 +108,9 @@ public class MessageResource implements MessageService {
                 //verificação se a mensagem foi realmente enviada
                 if (midFromOtherDomain == -1) {
 
-//                    mq.addMessage(msg, newID, recipient);
+                    mq.addMessage(msg, newID, recipient);
 
-                    //FALHA NO ENVIO DE mid PARA user
+//                    FALHA NO ENVIO DE mid PARA user
                     userFailedMessage(msg, newID, recipient);
                 }
 
@@ -126,10 +123,9 @@ public class MessageResource implements MessageService {
                             userInboxs.put(recipient, new HashSet<>());
                         }
                         userInboxs.get(recipient).add(newID);
-//                    updateOnWriteMessageBox();
                     }
                 } else {
-//                    mq.addMessage(msg, newID, recipient);
+                    mq.addMessage(msg, newID, recipient);
                     userFailedMessage(msg, newID, recipient);
                 }
             }
@@ -153,14 +149,14 @@ public class MessageResource implements MessageService {
         }
 
         Message m;
+        synchronized (this) {
+            if (!userInboxs.get(user + "@" + domain).contains(mid)) {
+                throw new WebApplicationException(Status.NOT_FOUND); //if not send HTTP 404 back to client
+            }
+        }
 
         synchronized (this) {
             m = allMessages.get(mid);
-        }
-
-        if (m == null) { //check if message exists
-            Log.info("Requested message does not exists.");
-            throw new WebApplicationException(Status.NOT_FOUND); //if not send HTTP 404 back to client
         }
 
         Log.info("Returning requested message to user.");
@@ -185,7 +181,8 @@ public class MessageResource implements MessageService {
         Log.info("Collecting all messages in server for user " + user);
         Set<Long> mids;
         synchronized (this) {
-            mids = userInboxs.getOrDefault(user, Collections.emptySet());
+            //FIXME Mudar a string user + @ domain
+            mids = userInboxs.getOrDefault(user + "@" + domain, Collections.emptySet());
         }
 
         for (Long l : mids) {
@@ -209,8 +206,13 @@ public class MessageResource implements MessageService {
         }
 
         synchronized (this) {
-            userInboxs.get(user).remove(mid);
-//            updateOnWriteMessageBox();
+            if (!userInboxs.get(user + "@" + domain).contains(mid)) {
+                throw new WebApplicationException(Status.NOT_FOUND); //if not send HTTP 404 back to client
+            }
+        }
+
+        synchronized (this) {
+            userInboxs.get(user + "@" + domain).remove(mid);
         }
 
     }
@@ -218,14 +220,9 @@ public class MessageResource implements MessageService {
     @Override
     public void deleteMessage(String user, long mid, String pwd) {
 
-        synchronized (this) {
-            if (!allMessages.containsKey(mid)) {
-                Log.info("Requested message does not exists.");
-                throw new WebApplicationException(Status.NOT_FOUND);
-            }
-        }
 
         User userExists = clientUtils.checkUser(getURI(domain, "users"), user, pwd);
+
 
         //Check if a user is valid
         if (userExists == null) {
@@ -233,11 +230,14 @@ public class MessageResource implements MessageService {
         }
 
 
-        Message msg;
+        Message msg = null;
         synchronized (this) {
-            msg = allMessages.remove(mid);
-//                updateOnWriteMessageBox();
+            if (allMessages.containsKey(mid) && allMessages.get(mid).getSender().contains(user)) {
+                msg = allMessages.remove(mid);
+            }
         }
+        if (msg == null)
+            return;
 
         Set<String> msgDestination = msg.getDestination();
 
@@ -265,7 +265,7 @@ public class MessageResource implements MessageService {
         if (chk != null) {
             long newID = m.getId();
             if (newID == -1) {
-                //checks if a message that came from the message queu exists by checking the timestamp
+                //checks if a message that came from the message qeue exists by checking the timestamp
                 long check = checkTimestamp(m.getCreationTime());
                 if (check == -1) {
 
@@ -277,11 +277,9 @@ public class MessageResource implements MessageService {
                         }
 
                         m.setId(newID);
-//            Add the message to the global list of messages
                         allMessages.put(newID, m);
                         Log.info("Created new message with id: " + newID);
 
-//            updateOnWriteMessageBox();
                     }
                 } else
                     newID = check;
@@ -292,7 +290,7 @@ public class MessageResource implements MessageService {
                     userInboxs.put(user, new HashSet<>());
                 }
                 userInboxs.get(user).add(newID);
-//                    updateOnWriteMessageBox();
+
             }
             return newID;
         } else {
@@ -318,9 +316,7 @@ public class MessageResource implements MessageService {
         for (long s : set) {
             if (allMessages.get(s).getCreationTime() == m.getCreationTime()) {
                 Message removed = allMessages.remove(s);
-//                updateOnWriteMessageBox();
                 userInboxs.get(user).remove(removed.getId());
-//                updateOnWriteUserInbox();
 
             }
         }
@@ -331,7 +327,6 @@ public class MessageResource implements MessageService {
     public void deleteUserInbox(String user) {
         synchronized (this) {
             userInboxs.remove(user);
-//            updateOnWriteUserInbox();
         }
     }
 
@@ -353,8 +348,6 @@ public class MessageResource implements MessageService {
         synchronized (this) {
             allMessages.put(newFailedMessageID, toUserMessage);
             userInboxs.get(msg.getSender()).add(newFailedMessageID);
-//            updateOnWriteMessageBox();
-//            updateOnWriteUserInbox();
         }
     }
 
@@ -371,72 +364,9 @@ public class MessageResource implements MessageService {
     }
 
     private Message getMessage(Message msg) {
-        Message toSend = new Message();
+        Message toSend = new Message(msg.getSender(), msg.getDestination(), msg.getSubject(), msg.getContents());
         toSend.setCreationTime(msg.getCreationTime());
-        toSend.setDestination(msg.getDestination());
-        toSend.setContents(msg.getContents());
-        toSend.setSender(msg.getSender());
-        toSend.setSubject(msg.getSubject());
-        toSend.setId(-1);
         return toSend;
-    }
-
-    //Serialize and Deserialize methods
-
-    private void updateOnWriteUserInbox() {
-        FileOutputStream fileOut = null;
-        try {
-            fileOut = new FileOutputStream("usersInbox.ser");
-            ObjectOutputStream out = new ObjectOutputStream(fileOut);
-            out.writeObject(userInboxs);
-            out.close();
-            fileOut.close();
-        } catch (IOException e) {
-            //e.printStackTrace();
-        }
-
-    }
-
-    private void updateOnWriteMessageBox() {
-        FileOutputStream fileOut = null;
-        try {
-            fileOut = new FileOutputStream("messages.ser");
-            ObjectOutputStream out = new ObjectOutputStream(fileOut);
-            out.writeObject(allMessages);
-            out.close();
-            fileOut.close();
-        } catch (IOException e) {
-            //e.printStackTrace();
-        }
-
-    }
-
-    private void deserializeMessages() {
-        try {
-            FileInputStream fileIn = new FileInputStream("messages.ser");
-            ObjectInputStream objIn = new ObjectInputStream(fileIn);
-            allMessages = (HashMap<Long, Message>) (objIn.readObject());
-            objIn.close();
-            fileIn.close();
-        } catch (FileNotFoundException fnf) {
-            allMessages = new HashMap<>();
-        } catch (IOException | ClassNotFoundException e) {
-            e.printStackTrace();
-        }
-    }
-
-    private void deserializeUserBoxes() {
-        try {
-            FileInputStream fileIn = new FileInputStream("usersInbox.ser");
-            ObjectInputStream objIn = new ObjectInputStream(fileIn);
-            userInboxs = (HashMap<String, Set<Long>>) (objIn.readObject());
-            objIn.close();
-            fileIn.close();
-        } catch (FileNotFoundException fnf) {
-            userInboxs = new HashMap<>();
-        } catch (IOException | ClassNotFoundException e) {
-            e.printStackTrace();
-        }
     }
 
     public void deleteFailedMessage(long mid, String user, String recipient) {

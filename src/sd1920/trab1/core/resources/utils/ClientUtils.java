@@ -17,7 +17,7 @@ import java.util.concurrent.TimeoutException;
 
 public class ClientUtils implements ClientUtilsInterface {
     private static final int CONNECTION_TIMEOUT = 10000;
-    private static final int REPLY_TIMOUT = 10000;
+    private static final int REPLY_TIMOUT = 600;
     private static final int MAX_RETRIES = 3;
     private static final int RETRY_PERIOD = 1000;
 
@@ -26,18 +26,15 @@ public class ClientUtils implements ClientUtilsInterface {
 
 
     public ClientUtils() {
-
-
+        config = new ClientConfig();
+        config.property(ClientProperties.CONNECT_TIMEOUT, CONNECTION_TIMEOUT);
+        config.property(ClientProperties.READ_TIMEOUT, REPLY_TIMOUT);
+        client = ClientBuilder.newClient(config);
     }
 
     //In every method to verify the user
     @Override
     public User checkUser(URI uri, String user, String pwd) {
-
-        config = new ClientConfig();
-        config.property(ClientProperties.CONNECT_TIMEOUT, CONNECTION_TIMEOUT);
-        config.property(ClientProperties.READ_TIMEOUT, REPLY_TIMOUT);
-        client = ClientBuilder.newClient(config);
 
         boolean success = false;
         short retries = 0;
@@ -46,7 +43,7 @@ public class ClientUtils implements ClientUtilsInterface {
         Response r = null;
         while (!success && retries < MAX_RETRIES) {
             try {
-                r = client.target(uri).path("/users/"+user).queryParam("pwd", pwd)
+                r = client.target(uri).path(user).queryParam("pwd", pwd)
                         .request(MediaType.APPLICATION_JSON)
                         .accept(MediaType.APPLICATION_JSON_TYPE).get();
 
@@ -54,6 +51,10 @@ public class ClientUtils implements ClientUtilsInterface {
                     success = true;
                     receivedUser = r.readEntity(new GenericType<User>() {
                     });
+                }
+
+                if(r.getStatus() == Response.Status.FORBIDDEN.getStatusCode()){
+                    success = true;
                 }
 
             } catch (ProcessingException e ) {
@@ -80,7 +81,7 @@ public class ClientUtils implements ClientUtilsInterface {
             try {
 
                 //PostMessage RMI to other server
-                Response r = client.target(uri).path("/messages/postMessageFromDomain/" + user)
+                Response r = client.target(uri).path("/postMessageFromDomain/" + user)
                         .queryParam("pwd", (Object) null)
                         .request().accept(MediaType.APPLICATION_JSON)
                         .post(Entity.entity(message, MediaType.APPLICATION_JSON));
@@ -88,6 +89,8 @@ public class ClientUtils implements ClientUtilsInterface {
                 if (r.getStatus() == Response.Status.OK.getStatusCode()) {
                     return r.readEntity(new GenericType<Long>() {
                     });
+                }else{
+                    return (long) -1;
                 }
 
             } catch (ProcessingException pe) {
@@ -111,7 +114,7 @@ public class ClientUtils implements ClientUtilsInterface {
         Response r = null;
         while (!success && retries < MAX_RETRIES) {
             try {
-                r = client.target(uri).path("/messages/therDomain/" + user)
+                r = client.target(uri).path("/otherDomain/" + user)
                         .request().accept(MediaType.APPLICATION_JSON)
                         .post(Entity.entity(m, MediaType.APPLICATION_JSON));
                 if (r.getStatus() == Response.Status.NO_CONTENT.getStatusCode())
@@ -142,7 +145,7 @@ public class ClientUtils implements ClientUtilsInterface {
         Response r = null;
         while (!success && retries < MAX_RETRIES) {
             try {
-                r = client.target(uri).path("/messages/deleteUserInbox/" + user).request().delete();
+                r = client.target(uri).path("/deleteUserInbox/" + user).request().delete();
 
                 success = true;
             } catch (ProcessingException pe) {
@@ -162,10 +165,6 @@ public class ClientUtils implements ClientUtilsInterface {
 
     public String userExists(String user, URI uri) {
 
-        config = new ClientConfig();
-        config.property(ClientProperties.CONNECT_TIMEOUT, CONNECTION_TIMEOUT);
-        config.property(ClientProperties.READ_TIMEOUT, REPLY_TIMOUT);
-        client = ClientBuilder.newClient(config);
 
         boolean success = false;
         short retries = 0;
@@ -174,7 +173,7 @@ public class ClientUtils implements ClientUtilsInterface {
         Response r = null;
         while (!success && retries < MAX_RETRIES) {
             try {
-                r = client.target(uri).path("/users/userExists/"+ user.split("@")[0])
+                r = client.target(uri).path("/userExists/"+ user.split("@")[0])
                         .request()
                         .accept(MediaType.APPLICATION_JSON_TYPE).get();
 
