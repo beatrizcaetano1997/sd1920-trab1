@@ -1,4 +1,4 @@
-package sd1920.trab1.core.resources.utils;
+package sd1920.trab1.core.clt.rest;
 
 import sd1920.trab1.api.Message;
 import sd1920.trab1.api.User;

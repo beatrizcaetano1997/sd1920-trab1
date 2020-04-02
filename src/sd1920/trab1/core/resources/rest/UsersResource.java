@@ -1,10 +1,12 @@
-package sd1920.trab1.core.resources;
+package sd1920.trab1.core.resources.rest;
 
 import sd1920.trab1.api.User;
 import sd1920.trab1.api.rest.UserService;
-import sd1920.trab1.core.resources.utils.ClientUtils;
+import sd1920.trab1.core.clt.rest.ClientUtils;
+import sd1920.trab1.core.resources.soap.MessageResource;
 import sd1920.trab1.core.servers.discovery.Discovery;
 
+import javax.jws.WebService;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response.Status;
 import java.io.*;
@@ -22,7 +24,7 @@ public class UsersResource implements UserService {
     private Discovery discovery;
     private ClientUtils clientUtils;
 
-    public UsersResource(String domain, Discovery discovery) {
+    public UsersResource(Discovery discovery, String domain) {
         this.domain = domain;
         this.discovery = discovery;
         clientUtils = new ClientUtils();
@@ -118,28 +120,23 @@ public class UsersResource implements UserService {
     }
 
     @Override
-    public User deleteUser(String user, String pwd) {
-        synchronized (this) {
-            if (!users.containsKey(user) || !users.get(user).getPwd().equals(pwd)) {
+    public User deleteUser(String user, String pwd)
+    {
+        synchronized (this)
+        {
+            if (!users.containsKey(user) || !users.get(user).getPwd().equals(pwd))
                 throw new WebApplicationException(Status.FORBIDDEN);
-            }
 
-            clientUtils.deleteUserInbox(getURI(domain, "messages"), user);
+            clientUtils.deleteUserInbox(discovery.getURI(domain, "messages"), user);
 
             return users.remove(user);
         }
     }
-
-    private URI getURI(String domain, String serviceType) {
-
-        URI[] l = discovery.knownUrisOf(domain);
-        for (URI uri : l) {
-            if (uri.toString().contains(serviceType)) {
-                return uri;
-            }
-        }
-        return null;
+    
+    //UTILS
+    public URI getURI(String domain, String serviceType)
+    {
+    	return discovery.getURI(domain, serviceType);
     }
-
 
 }

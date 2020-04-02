@@ -169,7 +169,8 @@ public class Discovery {
      * @param serviceName the name of the service being discovered
      * @return an array of URI with the service instances discovered.
      */
-    public URI[] knownUrisOf(String serviceName) {
+    public URI[] knownUrisOf(String serviceName)
+    {
 
         Set<URI> discoveredUris = new HashSet<URI>();
 
@@ -188,7 +189,15 @@ public class Discovery {
         return discoveredUris.toArray(new URI[discoveredUris.size()]);
     }
 
-    // Main just for testing purposes
-    public static void main(String[] args) throws Exception {
+    public URI getURI(String domain, String serviceType) {
+
+        URI[] l = knownUrisOf(domain);
+        for (URI uri : l) {
+            if (uri.toString().contains(serviceType)) {
+                return uri;
+            }
+        }
+        return null;
     }
+    
 }

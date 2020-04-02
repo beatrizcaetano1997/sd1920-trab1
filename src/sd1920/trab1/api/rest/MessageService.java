@@ -93,7 +93,7 @@ public interface MessageService {
 	@Path("/msg/{user}/{mid}")
 	@Produces(MediaType.APPLICATION_JSON)
 	void deleteMessage(@PathParam("user") String user, @PathParam("mid") long mid,
-                       @QueryParam("pwd") String pwd);
+					   @QueryParam("pwd") String pwd);
 
 
 	@POST

@@ -1,7 +1,7 @@
 package sd1920.trab1.core.resources.utils;
 
 import sd1920.trab1.api.Message;
-import sd1920.trab1.core.resources.MessageResource;
+import sd1920.trab1.core.resources.rest.MessageResource;
 
 import java.util.concurrent.ConcurrentLinkedQueue;
 

@@ -1,10 +1,11 @@
-package sd1920.trab1.core.resources;
+package sd1920.trab1.core.resources.rest;
 
 import java.net.URI;
 import java.util.*;
 import java.util.logging.Logger;
 
 import javax.inject.Singleton;
+import javax.jws.WebService;
 import javax.ws.rs.*;
 
 import javax.ws.rs.core.Response.Status;
@@ -12,7 +13,7 @@ import javax.ws.rs.core.Response.Status;
 import sd1920.trab1.api.Message;
 import sd1920.trab1.api.User;
 import sd1920.trab1.api.rest.MessageService;
-import sd1920.trab1.core.resources.utils.ClientUtils;
+import sd1920.trab1.core.clt.rest.ClientUtils;
 import sd1920.trab1.core.resources.utils.DeleteMessageQueue;
 import sd1920.trab1.core.resources.utils.PostMessageQueue;
 import sd1920.trab1.core.servers.discovery.Discovery;
@@ -136,7 +137,6 @@ public class MessageResource implements MessageService {
         return newID;
     }
 
-
     @Override
     public Message getMessage(String user, long mid, String pwd) {
         Log.info("Received request for message with id: " + mid + ".");
@@ -163,7 +163,6 @@ public class MessageResource implements MessageService {
         return m; //Return message to the client with code HTTP 200
 
     }
-
 
     @Override
     public List<Long> getMessages(String user, String pwd) {
@@ -298,14 +297,6 @@ public class MessageResource implements MessageService {
         }
     }
 
-    private long checkTimestamp(long creationTime) {
-        for (long m : allMessages.keySet()) {
-            if (allMessages.get(m).getCreationTime() == creationTime)
-                return m;
-        }
-        return -1;
-    }
-
     //method to delete messages from other domains
     @Override
     public void deleteMessageFromOtherDomain(String user, Message m) {
@@ -323,7 +314,7 @@ public class MessageResource implements MessageService {
 
     }
 
-
+    @Override
     public void deleteUserInbox(String user) {
         synchronized (this) {
             userInboxs.remove(user);
@@ -351,16 +342,9 @@ public class MessageResource implements MessageService {
         }
     }
 
-    public URI getURI(String domain, String serviceType) {
-
-
-        URI[] l = discovery.knownUrisOf(domain);
-        for (URI uri : l) {
-            if (uri.toString().contains(serviceType)) {
-                return uri;
-            }
-        }
-        return null;
+    public URI getURI(String domain, String serviceType)
+    {
+    	return discovery.getURI(domain, serviceType);
     }
 
     private Message getMessage(Message msg) {
@@ -378,5 +362,13 @@ public class MessageResource implements MessageService {
                 }
             }
         }
+    }
+
+    private long checkTimestamp(long creationTime) {
+        for (long m : allMessages.keySet()) {
+            if (allMessages.get(m).getCreationTime() == creationTime)
+                return m;
+        }
+        return -1;
     }
 }

@@ -98,6 +98,10 @@
 			<artifactId>gson</artifactId>
 			<version>2.8.6</version>
 		</dependency>
+		<dependency>
+			<groupId>com.sun.xml.ws</groupId>
+			<artifactId>jaxws-rt</artifactId>
+		</dependency>
 	</dependencies>
 	<dependencyManagement>
 		<dependencies>
@@ -145,6 +149,11 @@
 				<groupId>org.apache.httpcomponents</groupId>
 				<artifactId>httpclient</artifactId>
 				<version>4.5.9</version>
+			</dependency>
+			<dependency>
+				<groupId>com.sun.xml.ws</groupId>
+				<artifactId>jaxws-rt</artifactId>
+				<version>2.3.2-1</version>
 			</dependency>
 		</dependencies>
 	</dependencyManagement>

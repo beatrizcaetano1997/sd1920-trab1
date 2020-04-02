@@ -1,4 +1,4 @@
-package sd1920.trab1.core.resources.utils;
+package sd1920.trab1.core.clt.rest;
 
 import org.glassfish.jersey.client.ClientConfig;
 import org.glassfish.jersey.client.ClientProperties;
@@ -24,8 +24,8 @@ public class ClientUtils implements ClientUtilsInterface {
     Client client;
     ClientConfig config;
 
-
-    public ClientUtils() {
+    public ClientUtils()
+    {
         config = new ClientConfig();
         config.property(ClientProperties.CONNECT_TIMEOUT, CONNECTION_TIMEOUT);
         config.property(ClientProperties.READ_TIMEOUT, REPLY_TIMOUT);
