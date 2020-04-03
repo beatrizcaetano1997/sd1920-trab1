@@ -46,7 +46,7 @@ public class ClientUtilsUsers implements IClientUtilsUsers
 	}
 
 	@Override
-	public User checkUser(URI uri, String user, String pwd)
+	public User checkUser(String user, String pwd)
 	{
 		boolean success = false;
         short retries = 0;
@@ -77,5 +77,39 @@ public class ClientUtilsUsers implements IClientUtilsUsers
             }
         }
         return receivedUser;
+	}
+
+	@Override
+	public String userExists(String user)
+	{
+		boolean success = false;
+        short retries = 0;
+        String receivedId = null;
+
+        while (!success && retries < MAX_RETRIES) {
+            try
+            {
+                receivedId = users.checkIfUserExists(user);
+                success = true;
+            }
+            catch (UsersException ex)
+            {
+            	success = true;
+            }
+            catch (WebServiceException wse )
+            {
+                retries++;
+
+                try
+                {
+                    Thread.sleep(RETRY_PERIOD);
+                }
+                catch (InterruptedException ignored)
+                {
+                    //nothing to be done here, if it happens, it will retry sooner
+                }
+            }
+        }
+        return receivedId;
 	}
 }

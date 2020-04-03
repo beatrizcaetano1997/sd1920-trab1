@@ -6,5 +6,7 @@ import java.net.URI;
 
 public interface IClientUtilsUsers {
     //In every method to verify the user
-    User checkUser(URI uri, String user, String pwd);
+    User checkUser(String user, String pwd);
+    
+    String userExists(String user);
 }

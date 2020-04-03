@@ -126,12 +126,12 @@ public class UsersResource implements UserService
     }
 
     @Override
-    public User deleteUser(String user, String pwd) throws UsersException, MalformedURLException, WebServiceException
+    public User deleteUser(String user, String pwd) throws UsersException
     {
-        synchronized (this) {
-            if (!users.containsKey(user) || !users.get(user).getPwd().equals(pwd)) {
+        synchronized (this)
+        {
+            if (!users.containsKey(user) || !users.get(user).getPwd().equals(pwd))
                 throw new UsersException(Status.FORBIDDEN);
-            }
 
             boolean success = false;
             
@@ -139,13 +139,9 @@ public class UsersResource implements UserService
             {
             	success = new ClientUtilsMessages(getURI(domain, "messages").toString()).deleteUserInbox(user);
             }
-            catch (MalformedURLException wrongURL)
+            catch (MalformedURLException | WebServiceException clientEx)
             {
-            	return null;
-            }
-            catch (WebServiceException wEx)
-            {
-            	return null;
+            	throw new UsersException(clientEx.getMessage());
             }
             
             if (success)

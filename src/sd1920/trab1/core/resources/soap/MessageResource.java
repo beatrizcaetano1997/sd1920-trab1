@@ -1,5 +1,6 @@
 package sd1920.trab1.core.resources.soap;
 
+import java.net.MalformedURLException;
 import java.net.URI;
 import java.util.*;
 import java.util.logging.Logger;
@@ -9,12 +10,13 @@ import javax.jws.WebService;
 import javax.ws.rs.*;
 
 import javax.ws.rs.core.Response.Status;
+import javax.xml.ws.WebServiceException;
 
 import sd1920.trab1.api.Message;
 import sd1920.trab1.api.User;
 import sd1920.trab1.api.soap.MessageService;
 import sd1920.trab1.api.soap.MessagesException;
-import sd1920.trab1.core.clt.rest.ClientUtils;
+import sd1920.trab1.core.clt.soap.*;
 import sd1920.trab1.core.resources.utils.DeleteMessageQueue;
 import sd1920.trab1.core.resources.utils.PostMessageQueue;
 import sd1920.trab1.core.servers.discovery.Discovery;
@@ -33,7 +35,6 @@ public class MessageResource implements MessageService {
     private static Logger Log = Logger.getLogger(MessageResource.class.getName());
     private Discovery discovery;
     private String domain;
-    public ClientUtils clientUtils;
     private PostMessageQueue mq;
     private DeleteMessageQueue dq;
 
@@ -42,7 +43,6 @@ public class MessageResource implements MessageService {
         this.randomNumberGenerator = new Random(System.currentTimeMillis());
         this.discovery = discovery;
         this.domain = domain;
-        clientUtils = new ClientUtils();
         // Creates the handler for delivering failed messages
 //        mq = new PostMessageQueue(this);
 //        Thread postMessagesHandler = new Thread(mq);
@@ -59,17 +59,24 @@ public class MessageResource implements MessageService {
     {
 
         //Check if message is valid, if not return HTTP CONFLICT (409)
-        if (msg.getSender() == null || msg.getDestination() == null || msg.getDestination().size() == 0) {
+        if (msg.getSender() == null || msg.getDestination() == null || msg.getDestination().size() == 0)
             throw new MessagesException(Status.CONFLICT);
-        }
 
 
-        User userExists = clientUtils.checkUser(getURI(domain, "users"), msg.getSender().split("@")[0], pwd);
+        User userExists;
+		try
+		{
+			userExists = new ClientUtilsUsers(getURI(domain, "users").toString())
+												   .checkUser(msg.getSender().split("@")[0], pwd);
+		}
+		catch (MalformedURLException | WebServiceException e)
+		{
+			throw new MessagesException(e.getMessage());
+		}
 
         //Check if a user is valid
-        if (userExists == null) {
+        if (userExists == null)
             throw new MessagesException(Status.FORBIDDEN);
-        }
 
         long newID = Math.abs(randomNumberGenerator.nextLong());
         synchronized (this) {
@@ -98,7 +105,15 @@ public class MessageResource implements MessageService {
 
                 if (!otherDomains.containsKey(userDomain)) {
                     Message toSend = getMessage(msg);
-                    midFromOtherDomain = clientUtils.postOtherDomainMessage(getURI(recipient.split("@")[1], "messages"), toSend, recipient);
+                    try
+                    {
+						midFromOtherDomain = new ClientUtilsMessages(getURI(recipient.split("@")[1], "messages").toString())
+												.postOtherDomainMessage(toSend, recipient);
+					}
+                    catch (MalformedURLException | WebServiceException e)
+                    {
+						throw new MessagesException(e.getMessage());
+					}
 
                     if (midFromOtherDomain != -1)
                         otherDomains.put(userDomain, midFromOtherDomain);
@@ -107,30 +122,51 @@ public class MessageResource implements MessageService {
                     Long mid = otherDomains.get(userDomain);
                     Message m = getMessage(msg);
                     m.setId(mid);
-                    midFromOtherDomain = clientUtils.postOtherDomainMessage(getURI(recipient.split("@")[1], "messages"), m, recipient);
+                    try
+                    {
+						midFromOtherDomain = new ClientUtilsMessages(getURI(recipient.split("@")[1], "messages").toString())
+												  .postOtherDomainMessage(m, recipient);
+					}
+                    catch (MalformedURLException | WebServiceException e)
+                    {
+                    	throw new MessagesException(e.getMessage());
+					}
 
                 }
 
                 //verificação se a mensagem foi realmente enviada
-                if (midFromOtherDomain == -1) {
-
+                if (midFromOtherDomain == -1)
+                {
                     mq.addMessage(msg, newID, recipient);
-
 //                    FALHA NO ENVIO DE mid PARA user
                     userFailedMessage(msg, newID, recipient);
                 }
 
-            } else {
-
-                String chk = clientUtils.userExists(recipient, getURI(domain, "users"));
-                if (chk != null) {
-                    synchronized (this) {
-                        if (!userInboxs.containsKey(recipient)) {
+            }
+            else
+            {
+                String chk;
+				try
+				{
+					chk = new ClientUtilsUsers(getURI(domain, "users").toString()).userExists(recipient);
+				}
+				catch (MalformedURLException | WebServiceException e)
+				{
+					throw new MessagesException(e.getMessage());
+				}
+				
+                if (chk != null)
+                {
+                    synchronized (this)
+                    {
+                        if (!userInboxs.containsKey(recipient))
                             userInboxs.put(recipient, new HashSet<>());
-                        }
+                        
                         userInboxs.get(recipient).add(newID);
                     }
-                } else {
+                }
+                else
+                {
                     mq.addMessage(msg, newID, recipient);
                     userFailedMessage(msg, newID, recipient);
                 }
@@ -147,10 +183,20 @@ public class MessageResource implements MessageService {
     {
         Log.info("Received request for message with id: " + mid + ".");
 
-        User userExists = clientUtils.checkUser(getURI(domain, "users"), user, pwd);
+        User userExists;
+        try
+		{
+			userExists = new ClientUtilsUsers(getURI(domain, "users").toString())
+							 .checkUser(user, pwd);
+		}
+		catch (MalformedURLException | WebServiceException e)
+		{
+			throw new MessagesException(e.getMessage());
+		}
 
         //Check if a user is valid
-        if (userExists == null) {
+        if (userExists == null)
+        {
             throw new MessagesException(Status.FORBIDDEN);
         }
 
@@ -177,7 +223,16 @@ public class MessageResource implements MessageService {
 
         List<Long> messages = new LinkedList<>();
 
-        User userExists = clientUtils.checkUser(getURI(domain, "users"), user, pwd);
+        User userExists;
+        try
+		{
+			userExists = new ClientUtilsUsers(getURI(domain, "users").toString())
+							 .checkUser(user, pwd);
+		}
+		catch (MalformedURLException | WebServiceException e)
+		{
+			throw new MessagesException(e.getMessage());
+		}
 
         //Check if a user is valid
         if (userExists == null) {
@@ -205,7 +260,16 @@ public class MessageResource implements MessageService {
     public void removeFromUserInbox(String user, long mid, String pwd) throws MessagesException
     {
 
-        User userExists = clientUtils.checkUser(getURI(domain, "users"), user, pwd);
+    	User userExists;
+        try
+		{
+			userExists = new ClientUtilsUsers(getURI(domain, "users").toString())
+							 .checkUser(user, pwd);
+		}
+		catch (MalformedURLException | WebServiceException e)
+		{
+			throw new MessagesException(e.getMessage());
+		}
 
         //Check if a user is valid
         if (userExists == null) {
@@ -227,8 +291,16 @@ public class MessageResource implements MessageService {
     @Override
     public void deleteMessage(String user, long mid, String pwd) throws MessagesException
     {
-        User userExists = clientUtils.checkUser(getURI(domain, "users"), user, pwd);
-
+    	User userExists;
+        try
+		{
+			userExists = new ClientUtilsUsers(getURI(domain, "users").toString())
+							 .checkUser(user, pwd);
+		}
+		catch (MalformedURLException | WebServiceException e)
+		{
+			throw new MessagesException(e.getMessage());
+		}
 
         //Check if a user is valid
         if (userExists == null) {
@@ -247,19 +319,29 @@ public class MessageResource implements MessageService {
 
         Set<String> msgDestination = msg.getDestination();
 
-        for (String user_dest : msgDestination) {
-            if (!user_dest.split("@")[1].equals(domain)) {
+        for (String user_dest : msgDestination)
+        {
+            if (!user_dest.split("@")[1].equals(domain))
+            {
                 Message m = new Message();
                 m.setCreationTime(msg.getCreationTime());
-                boolean success = clientUtils.deleteOtherDomainMessage(getURI(user_dest.split("@")[1], "messages"), user_dest, m);
-                if (!success) {
+                boolean success;
+				try
+				{
+					success = new ClientUtilsMessages(getURI(user_dest.split("@")[1], "messages").toString())
+										  .deleteOtherDomainMessage(user_dest, m);
+				}
+				catch (MalformedURLException | WebServiceException e) {
+					throw new MessagesException(e.getMessage());
+				}
+                if (!success)
                     dq.addMessage(msg, user_dest);
-                }
-            } else {
+            }
+            else
+            {
                 synchronized (this) {
                     userInboxs.get(user_dest).remove(mid);
 //                        updateOnWriteUserInbox();
-
                 }
             }
         }
@@ -268,7 +350,16 @@ public class MessageResource implements MessageService {
     @Override
     public long postOtherMessageDomain(Message m, String user) throws MessagesException
     {
-        String chk = clientUtils.userExists(user, getURI(domain, "users"));
+    	String chk;
+		try
+		{
+			chk = new ClientUtilsUsers(getURI(domain, "users").toString()).userExists(user);
+		}
+		catch (MalformedURLException | WebServiceException e)
+		{
+			throw new MessagesException(e.getMessage());
+		}
+		
         if (chk != null) {
             long newID = m.getId();
             if (newID == -1) {

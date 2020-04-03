@@ -62,7 +62,7 @@ public interface UserService {
 	 * @throws MessagesException in case of error.
 	 */
 	@WebMethod
-	public User deleteUser(String name, String pwd) throws UsersException, MalformedURLException, WebServiceException;
+	public User deleteUser(String name, String pwd) throws UsersException;
 	
 	@WebMethod
 	public String checkIfUserExists(String user) throws UsersException;
