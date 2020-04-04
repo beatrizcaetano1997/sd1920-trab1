@@ -34,13 +34,13 @@ public class DomainServerSOAP {
 	
 	public static void main(String[] args) throws Exception
 	{
-		ExecutorService messagePool = Executors.newFixedThreadPool(15);
-		ExecutorService usersPool = Executors.newFixedThreadPool(15);
+		//ExecutorService messagePool = Executors.newFixedThreadPool(15);
+		//ExecutorService usersPool = Executors.newFixedThreadPool(15);
 		
 		String ip = InetAddress.getLocalHost().getHostAddress();
 		//para correr sem ser no docker, mudar a string para "fct" ou "fcsh" por exemplo
 		String domain = InetAddress.getLocalHost().getHostName();	
-		String serverURI = String.format("http://%s:%s/soap", ip, PORT);
+		String serverURI = String.format("http://%s:%s", ip, PORT);
 		
 		Discovery messageDiscovery = new Discovery(new InetSocketAddress("226.226.226.226", 2266), domain, serverURI + MessageService.PATH);
 		messageDiscovery.start();
@@ -50,21 +50,32 @@ public class DomainServerSOAP {
 		
 		// Create an HTTP server, accepting requests at PORT (from all local interfaces)
 		HttpServer server = HttpServer.create(new InetSocketAddress(ip, PORT), 0);
+		Log.info("\n SERVER AT: " + ip + ":" + PORT + ".\n");
 		server.setExecutor(Executors.newCachedThreadPool());
 		
 		// Create a SOAP Endpoint (you need one for each service)
 		// One thread per each endpoint
 		//TODO: SEE HOW TO PUT EACH ENDPOINT IN THREAD
 		
+		/*
 		messagePool.execute(new Thread( () -> {
 			Endpoint soapMessagesEndpoint = Endpoint.create(new MessageResource(messageDiscovery, domain));
 			soapMessagesEndpoint.publish(server.createContext(MessageService.PATH));
+			Log.info("\nMessage Endpoint Created & Published");
 		}));
+		*/
 		
+		/*
 		usersPool.execute(new Thread( () -> {
 			Endpoint soapUsersEndpoint = Endpoint.create(new UsersResource(userDiscovery, domain));
 			soapUsersEndpoint.publish(server.createContext(UserService.PATH));
+			Log.info("\nUsers Endpoint Created & Published");
 		}));
+		*/
+		
+		Endpoint soapUsersEndpoint = Endpoint.create(new UsersResource(userDiscovery, domain));
+		soapUsersEndpoint.publish(server.createContext(UserService.PATH));
+		Log.info("\nUsers Endpoint Created & Published\n");
 		
 		server.start();
 		

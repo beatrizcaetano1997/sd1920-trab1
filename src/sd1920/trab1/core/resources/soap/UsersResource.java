@@ -6,6 +6,7 @@ import sd1920.trab1.api.soap.UsersException;
 import sd1920.trab1.core.clt.soap.*;
 import sd1920.trab1.core.servers.discovery.Discovery;
 
+import javax.jws.WebMethod;
 import javax.jws.WebService;
 import javax.ws.rs.core.Response.Status;
 import javax.xml.ws.WebServiceException;
@@ -25,7 +26,7 @@ public class UsersResource implements UserService
 
     private String domain;
 
-    private static Logger Log = Logger.getLogger(MessageResource.class.getName());
+    private static Logger Log = Logger.getLogger(UsersResource.class.getName());
     private Discovery discovery;
 
     public UsersResource(Discovery discovery, String domain)
@@ -37,6 +38,7 @@ public class UsersResource implements UserService
     @Override
     public String postUser(User user) throws UsersException
     {
+    	Log.info("\nPOST_USER | USERS RESOURCE.\n");
         if (user.getName() == null || user.getName().isEmpty()) {
             throw new UsersException(Status.CONFLICT);
 
