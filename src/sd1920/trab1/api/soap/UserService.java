@@ -16,7 +16,8 @@ public interface UserService {
 	static final String NAME = "users";
 	static final String NAMESPACE = "http://sd2019";
 	static final String INTERFACE = "sd1920.trab1.api.soap.UserService";
-	static final String PATH = "/users";
+	
+	static final String PATH = "/users?wsdl";
 	
 	/**
 	 * Creates a new user in the local domain.
@@ -57,8 +58,6 @@ public interface UserService {
 	 * @param pwd password of the user (or a special password)
 	 * @return the deleted user object, if the name exists and pwd matches the existing password 
 	 * (or is the a special password allowing all operations).
-	 * @throws WebServiceException 
-	 * @throws MalformedURLException 
 	 * @throws MessagesException in case of error.
 	 */
 	@WebMethod

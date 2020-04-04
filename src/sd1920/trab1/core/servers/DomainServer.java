@@ -57,7 +57,7 @@ public class DomainServer
 		}));
 
 		JdkHttpServerFactory.createHttpServer( URI.create(serverURI), config);
-	
+
 		Log.info(String.format("%s Server ready @ %s\n", MESSAGE_SERVICE, serverURI));
 		Log.info(String.format("%s Server ready @ %s\n", USER_SERVICE, serverURI));
 

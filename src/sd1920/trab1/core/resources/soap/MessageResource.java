@@ -21,7 +21,6 @@ import sd1920.trab1.core.resources.utils.DeleteMessageQueue;
 import sd1920.trab1.core.resources.utils.PostMessageQueue;
 import sd1920.trab1.core.servers.discovery.Discovery;
 
-@Singleton
 @WebService(serviceName=MessageService.NAME, 
 targetNamespace=MessageService.NAMESPACE, 
 endpointInterface=MessageService.INTERFACE)
@@ -57,11 +56,9 @@ public class MessageResource implements MessageService {
     @Override
     public long postMessage(String pwd, Message msg) throws MessagesException
     {
-
         //Check if message is valid, if not return HTTP CONFLICT (409)
         if (msg.getSender() == null || msg.getDestination() == null || msg.getDestination().size() == 0)
             throw new MessagesException(Status.CONFLICT);
-
 
         User userExists;
 		try

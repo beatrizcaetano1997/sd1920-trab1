@@ -21,7 +21,8 @@ public interface MessageService {
 	static final String NAME = "messages";
 	static final String NAMESPACE = "http://sd2019";
 	static final String INTERFACE = "sd1920.trab1.api.soap.MessageService";
-	static final String PATH = "/messages";
+	
+	static final String PATH = "/messages?wsdl";
 	
 	/**
 	 * Posts a new message to the server, associating it to the inbox of every individual destination.

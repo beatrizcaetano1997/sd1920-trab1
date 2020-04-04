@@ -24,7 +24,7 @@ public interface UserService {
      * @param user User to be created
      * @return 200: the address of the user (name@domain).
      * 403 if the domain in the user does not match the domain of the server
-     * 409 if either name, pwd, or domain and null
+     * 409 otherwise
      */
     @POST
     @Path("/")
@@ -37,8 +37,9 @@ public interface UserService {
      *
      * @param name the name of the user
      * @param pwd  password of the user (or a special password)
-     * @return the user object, if the name exists and pwd matches the existing password
+     * @return 200: the user object, if the name exists and pwd matches the existing password
      * (or is the a special password allowing all operations);
+     * 403 if the password is incorrect or the user does not exist
      * 409 otherwise
      */
     @GET
@@ -53,8 +54,9 @@ public interface UserService {
      * @param name the name of the user
      * @param pwd  password of the user (or a special password)
      * @param user Updated information
-     * @return the updated user object, if the name exists and pwd matches the existing password
+     * @return 200: the updated user object, if the name exists and pwd matches the existing password
      * (or is the a special password allowing all operations);
+     * 403 if the password is incorrect or the user does not exist
      * 409 otherwise
      */
     @PUT
@@ -74,8 +76,9 @@ public interface UserService {
      *
      * @param user the name of the user
      * @param pwd  password of the user (or a special password)
-     * @return the deleted user object, if the name exists and pwd matches the existing password
+     * @return 200: the deleted user object, if the name exists and pwd matches the existing password
      * (or is the a special password allowing all operations);
+     * 403: if the password is incorrect or the user does not exist
      * 409 otherwise
      */
     @DELETE

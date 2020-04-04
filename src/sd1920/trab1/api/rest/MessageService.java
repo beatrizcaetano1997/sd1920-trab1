@@ -28,10 +28,10 @@ public interface MessageService {
 	 * 
 	 * @param msg the message object to be posted to the server
 	 * @param pwd password of the user sending the message
-	 * @return the unique numerical identifier for the posted message;
+	 * @return 200: the unique numerical identifier for the posted message;
 	 * 403 if the sender does not exist or if the pwd is not correct (NOTE: sender can be in the form 
 	 * "name" or "name@domain");
-	 * 409 if sender or destinations == null or if no destinations were defined
+	 * 409 otherwise
 	 */
 	@POST
 	@Path("/")
@@ -44,7 +44,7 @@ public interface MessageService {
 	 * @param user user name for the operation
 	 * @param mid the identifier of the message
 	 * @param pwd password of the user
-	 * @return the message if it exists;
+	 * @return 200: the message if it exists;
 	 *  403 if the user does not exist or if the pwd is not correct;
 	 *  404 if the message does not exists
 	 */
@@ -58,7 +58,7 @@ public interface MessageService {
 	 * Returns a list of all ids of messages stored in the server for a given user
 	 * @param user the username of the user whose message ids should be returned
 	 * @param pwd password of the user
-	 * @return a list of ids potentially empty;
+	 * @return 200: a list of ids potentially empty;
 	 *  403 if the user does not exist or if the pwd is not correct;
 	 */
 	@GET
@@ -71,6 +71,7 @@ public interface MessageService {
 	 * @param user the username of the inbox that is manipulated by this method
 	 * @param mid the identifier of the message to be deleted
 	 * @param pwd password of the user
+	 * @return 204: if ok
 	 * 403 if the user does not exist or if the pwd is not correct;
 	 * 404 is generated if the message does not exist in the server.
 	 */
@@ -87,6 +88,7 @@ public interface MessageService {
 	 * @param user the username of the sender of the message to be deleted
 	 * @param mid the identifier of the message to be deleted
 	 * @param pwd password of the user that sent the message
+	 * @return 204 if OK
 	 * 403 is generated if the user does not exist or if the pwd is not correct
 	 */
 	@DELETE
