@@ -49,7 +49,7 @@ public interface MessageService {
 	 * @throws MessagesException in case of error.
 	 */
 	@WebMethod
-	public Message getMessage(String user, long mid, String pwd) throws MessagesException;
+	public Message getMessage(String user, String pwd, long mid) throws MessagesException;
 		
 	/**
 	 * Returns a list of all ids of messages stored in the server for a given user
@@ -69,7 +69,7 @@ public interface MessageService {
 	 * @throws MessagesException in case of error.
 	 */
 	@WebMethod
-	void removeFromUserInbox(String user, long mid, String pwd) throws MessagesException;
+	void removeFromUserInbox(String user, String pwd, long mid) throws MessagesException;
 
 	/**
 	 * Removes the message identified by mid from the inboxes of any server that holds the message.
@@ -82,7 +82,7 @@ public interface MessageService {
 	 * @throws MessagesException in case of error.
 	 */
 	@WebMethod
-	void deleteMessage(String user, long mid, String pwd) throws MessagesException;
+	void deleteMessage(String user, String pwd, long mid) throws MessagesException;
 
 	@WebMethod
 	long postOtherMessageDomain(Message m, String user) throws MessagesException;

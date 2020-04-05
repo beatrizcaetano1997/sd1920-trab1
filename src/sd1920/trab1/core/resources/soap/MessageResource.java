@@ -176,7 +176,7 @@ public class MessageResource implements MessageService {
     }
 
     @Override
-    public Message getMessage(String user, long mid, String pwd) throws MessagesException
+    public Message getMessage(String user, String pwd, long mid) throws MessagesException
     {
         Log.info("Received request for message with id: " + mid + ".");
 
@@ -254,7 +254,7 @@ public class MessageResource implements MessageService {
     }
 
     @Override
-    public void removeFromUserInbox(String user, long mid, String pwd) throws MessagesException
+    public void removeFromUserInbox(String user, String pwd, long mid) throws MessagesException
     {
 
     	User userExists;
@@ -286,7 +286,7 @@ public class MessageResource implements MessageService {
     }
 
     @Override
-    public void deleteMessage(String user, long mid, String pwd) throws MessagesException
+    public void deleteMessage(String user, String pwd, long mid) throws MessagesException
     {
     	User userExists;
         try
