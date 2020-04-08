@@ -45,7 +45,6 @@ public class Discovery {
     private Map<String, URI> uriMessagesMap = new HashMap<>();
 
 
-
     /**
      * @param serviceName the name of the service to announce
      * @param serviceURI  an uri string - representing the contact endpoint of the service being announced
@@ -66,7 +65,7 @@ public class Discovery {
      * Starts sending service announcements at regular intervals...
      */
     public void start() {
-        Log.info(String.format("Starting Discovery announcements on: %s for: %s -> %s", addr, serviceName, serviceURI));
+        Log.info(String.format("Starting Discovery announcements on: %s for: %s -> %s\n", addr, serviceName, serviceURI));
 
         byte[] announceBytes = String.format("%s%s%s", serviceName, DELIMITER, serviceURI).getBytes();
         DatagramPacket announcePkt = new DatagramPacket(announceBytes, announceBytes.length, addr);
@@ -104,15 +103,20 @@ public class Discovery {
 //                            System.out.printf("FROM %s (%s) : %s\n",
 //                                    pkt.getAddress().getCanonicalHostName(),
 //                                    pkt.getAddress().getHostAddress(), msg);
-                            if(uriService.toString().contains("users")){
+                            if (uriService.toString().contains("users")) {
                                 uriUsersMap.put(msgElems[0], uriService);
-                            }else{
+                            } else {
                                 uriMessagesMap.put(msgElems[0], uriService);
                             }
 
                         }
+                    } catch (SocketTimeoutException e) {
+                        try {
+                            Thread.sleep(1000);
+                        } catch (InterruptedException ignore) {
+                        }
                     } catch (IOException e) {
-                        // do nothing
+                        e.printStackTrace();
                     }
                 }
             }).start();
@@ -124,7 +128,6 @@ public class Discovery {
     public void startClient() {
         try (MulticastSocket ms = new MulticastSocket(addr.getPort())) {
             ms.joinGroup(addr.getAddress());
-            ms.setSoTimeout(DISCOVERY_TIMEOUT);
 
             // start thread to collect announcements
             new Thread(() -> {
@@ -142,9 +145,9 @@ public class Discovery {
 //                            System.out.printf("FROM %s (%s) : %s\n",
 //                                    pkt.getAddress().getCanonicalHostName(),
 //                                    pkt.getAddress().getHostAddress(), msg);
-                            if(uriService.toString().contains("users")){
+                            if (uriService.toString().contains("users")) {
                                 uriUsersMap.put(msgElems[0], uriService);
-                            }else{
+                            } else {
                                 uriMessagesMap.put(msgElems[0], uriService);
                             }
 

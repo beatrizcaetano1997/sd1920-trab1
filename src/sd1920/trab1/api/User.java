@@ -3,7 +3,7 @@ package sd1920.trab1.api;
 /**
  * Represents a user in the system.
  */
-public class User {
+public class User implements java.io.Serializable {
 	private String name;
 	private String pwd;
 	private String displayName;

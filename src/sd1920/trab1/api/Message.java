@@ -6,7 +6,7 @@ import java.util.Set;
 /**
  * Represents a message in the system.
  */
-public class Message {
+public class Message implements java.io.Serializable{
 
 	private long id;
 	private String sender;
