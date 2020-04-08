@@ -103,10 +103,6 @@ public interface MessageService {
 	@Consumes(MediaType.APPLICATION_JSON)
 	long postOtherMessageDomain(Message m, @PathParam("user") String user);
 
-	@POST
-	@Path("/postMessageFromDomain/{user}")
-	@Consumes(MediaType.APPLICATION_JSON)
-	long postOtherMessageDomain(Message m, @PathParam("user") String user);
 
 	@POST
 	@Path("/otherDomain/{user}")
