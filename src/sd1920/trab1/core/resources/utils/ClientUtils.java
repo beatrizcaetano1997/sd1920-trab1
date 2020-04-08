@@ -51,9 +51,9 @@ public class ClientUtils implements ClientUtilsInterface {
                     success = true;
                     receivedUser = r.readEntity(new GenericType<User>() {
                     });
-                }
-
-                if(r.getStatus() == Response.Status.FORBIDDEN.getStatusCode()){
+                }else if(r.getStatus() == Response.Status.FORBIDDEN.getStatusCode()){
+                    success = true;
+                }else if(r.getStatus() == Response.Status.CONFLICT.getStatusCode()){
                     success = true;
                 }
 
@@ -181,6 +181,8 @@ public class ClientUtils implements ClientUtilsInterface {
                     success = true;
                     receivedUser = r.readEntity(new GenericType<String>() {
                     });
+                }else if(r.getStatus() == Response.Status.NOT_FOUND.getStatusCode()){
+                    success = true;
                 }
 
             } catch (ProcessingException pe) {

@@ -31,8 +31,8 @@ public class DomainServer {
 
 
 	public static void main(String[] args) throws UnknownHostException {
-		ExecutorService messagePool = Executors.newFixedThreadPool(15);
-		ExecutorService usersPool = Executors.newFixedThreadPool(15);
+		ExecutorService messagePool = Executors.newFixedThreadPool(100);
+		ExecutorService usersPool = Executors.newFixedThreadPool(100);
 
 		String ip = InetAddress.getLocalHost().getHostAddress();
 
