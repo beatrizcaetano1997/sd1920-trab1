@@ -1,16 +1,17 @@
 package sd1920.trab1.core.resources.utils;
 
 import sd1920.trab1.api.Message;
-import sd1920.trab1.core.resources.MessageResource;
+import sd1920.trab1.core.resources.rest.MessageResource;
 
 import java.util.concurrent.ConcurrentLinkedQueue;
 
-public class PostMessageQueue implements Runnable {
-
+public class PostMessageQueue implements Runnable
+{
     ConcurrentLinkedQueue<QueueLog> queue = new ConcurrentLinkedQueue<>();
     MessageResource mr;
 
-    public PostMessageQueue(MessageResource mr) {
+    public PostMessageQueue(MessageResource mr) 
+    {
         this.mr = mr;
     }
 
