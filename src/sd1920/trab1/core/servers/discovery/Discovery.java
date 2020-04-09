@@ -41,8 +41,8 @@ public class Discovery {
     private InetSocketAddress addr;
     private String serviceName;
     private String serviceURI;
-    private Map<String, URI> uriUsersMap = new HashMap<>();
-    private Map<String, URI> uriMessagesMap = new HashMap<>();
+    private Map<String, URI> restURIS = new HashMap<>();
+    private Map<String, URI> soapURIS = new HashMap<>();
 
 
     /**
@@ -103,10 +103,10 @@ public class Discovery {
 //                            System.out.printf("FROM %s (%s) : %s\n",
 //                                    pkt.getAddress().getCanonicalHostName(),
 //                                    pkt.getAddress().getHostAddress(), msg);
-                            if (uriService.toString().contains("users")) {
-                                uriUsersMap.put(msgElems[0], uriService);
+                            if (uriService.toString().contains("rest")) {
+                                restURIS.put(msgElems[0], uriService);
                             } else {
-                                uriMessagesMap.put(msgElems[0], uriService);
+                                soapURIS.put(msgElems[0], uriService);
                             }
 
                         }
@@ -146,9 +146,9 @@ public class Discovery {
 //                                    pkt.getAddress().getCanonicalHostName(),
 //                                    pkt.getAddress().getHostAddress(), msg);
                             if (uriService.toString().contains("users")) {
-                                uriUsersMap.put(msgElems[0], uriService);
+                                restURIS.put(msgElems[0], uriService);
                             } else {
-                                uriMessagesMap.put(msgElems[0], uriService);
+                                soapURIS.put(msgElems[0], uriService);
                             }
 
                         }
@@ -171,17 +171,17 @@ public class Discovery {
      */
     public URI[] knownUrisOf(String serviceName) {
 
-        Set<URI> discoveredUris = new HashSet<URI>();
+        Set<URI> discoveredUris = new HashSet<>();
 
-        for (String key : uriUsersMap.keySet()) {
+        for (String key : restURIS.keySet()) {
             if (key.equals(serviceName)) {
-                discoveredUris.add(uriUsersMap.get(key));
+                discoveredUris.add(restURIS.get(key));
             }
         }
 
-        for (String key : uriMessagesMap.keySet()) {
+        for (String key : soapURIS.keySet()) {
             if (key.equals(serviceName)) {
-                discoveredUris.add(uriMessagesMap.get(key));
+                discoveredUris.add(soapURIS.get(key));
             }
         }
 
