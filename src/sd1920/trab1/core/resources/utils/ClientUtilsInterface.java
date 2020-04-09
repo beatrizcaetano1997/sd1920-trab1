@@ -13,8 +13,8 @@ public interface ClientUtilsInterface {
     Long postOtherDomainMessage(URI uri, Message message, String user);
 
     //Used to delete a given message in other domain ex -> DeleteMessage
-    boolean deleteOtherDomainMessage(URI uri, String user, Message m);
+    void deleteOtherDomainMessage(URI uri, String user, Message m);
 
     //Used to delete a user inbox ex -> DeleteUser
-    boolean deleteUserInbox(URI uri, String user);
+    void deleteUserInbox(URI uri, String user);
 }

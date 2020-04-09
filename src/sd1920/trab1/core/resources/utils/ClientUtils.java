@@ -13,7 +13,6 @@ import javax.ws.rs.core.GenericType;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.net.URI;
-import java.util.concurrent.TimeoutException;
 
 public class ClientUtils implements ClientUtilsInterface {
     private static final int CONNECTION_TIMEOUT = 10000;
@@ -40,24 +39,24 @@ public class ClientUtils implements ClientUtilsInterface {
         short retries = 0;
         User receivedUser = null;
 
-        Response r = null;
+        Response r;
         while (!success && retries < MAX_RETRIES) {
             try {
                 r = client.target(uri).path(user).queryParam("pwd", pwd)
                         .request(MediaType.APPLICATION_JSON)
                         .accept(MediaType.APPLICATION_JSON_TYPE).get();
 
-                if(r.getStatus() == Response.Status.OK.getStatusCode()){
+                if (r.getStatus() == Response.Status.OK.getStatusCode()) {
                     success = true;
                     receivedUser = r.readEntity(new GenericType<User>() {
                     });
-                }else if(r.getStatus() == Response.Status.FORBIDDEN.getStatusCode()){
+                } else if (r.getStatus() == Response.Status.FORBIDDEN.getStatusCode()) {
                     success = true;
-                }else if(r.getStatus() == Response.Status.CONFLICT.getStatusCode()){
+                } else if (r.getStatus() == Response.Status.CONFLICT.getStatusCode()) {
                     success = true;
                 }
 
-            } catch (ProcessingException e ) {
+            } catch (ProcessingException e) {
                 //timeout happened
                 retries++;
 
@@ -89,7 +88,7 @@ public class ClientUtils implements ClientUtilsInterface {
                 if (r.getStatus() == Response.Status.OK.getStatusCode()) {
                     return r.readEntity(new GenericType<Long>() {
                     });
-                }else{
+                } else {
                     return (long) -1;
                 }
 
@@ -107,11 +106,11 @@ public class ClientUtils implements ClientUtilsInterface {
 
     //Used to delete a given message in other domain ex -> DeleteMessage
     @Override
-    public boolean deleteOtherDomainMessage(URI uri, String user, Message m) {
+    public void deleteOtherDomainMessage(URI uri, String user, Message m) {
         boolean success = false;
         short retries = 0;
 
-        Response r = null;
+        Response r;
         while (!success && retries < MAX_RETRIES) {
             try {
                 r = client.target(uri).path("/otherDomain/" + user)
@@ -132,20 +131,19 @@ public class ClientUtils implements ClientUtilsInterface {
             }
         }
 
-        return success;
     }
 
     //Used to delete a user inbox ex -> DeleteUser
     @Override
-    public boolean deleteUserInbox(URI uri, String user) {
+    public void deleteUserInbox(URI uri, String user) {
 
         boolean success = false;
         short retries = 0;
 
-        Response r = null;
+
         while (!success && retries < MAX_RETRIES) {
             try {
-                r = client.target(uri).path("/deleteUserInbox/" + user).request().delete();
+                client.target(uri).path("/deleteUserInbox/" + user).request().delete();
 
                 success = true;
             } catch (ProcessingException pe) {
@@ -160,7 +158,6 @@ public class ClientUtils implements ClientUtilsInterface {
             }
         }
 
-        return success;
     }
 
     public String userExists(String user, URI uri) {
@@ -170,18 +167,18 @@ public class ClientUtils implements ClientUtilsInterface {
         short retries = 0;
         String receivedUser = null;
 
-        Response r = null;
+        Response r;
         while (!success && retries < MAX_RETRIES) {
             try {
-                r = client.target(uri).path("/userExists/"+ user.split("@")[0])
+                r = client.target(uri).path("/userExists/" + user.split("@")[0])
                         .request()
                         .accept(MediaType.APPLICATION_JSON_TYPE).get();
 
-                if(r.getStatus() == Response.Status.OK.getStatusCode()){
+                if (r.getStatus() == Response.Status.OK.getStatusCode()) {
                     success = true;
                     receivedUser = r.readEntity(new GenericType<String>() {
                     });
-                }else if(r.getStatus() == Response.Status.NOT_FOUND.getStatusCode()){
+                } else if (r.getStatus() == Response.Status.NOT_FOUND.getStatusCode()) {
                     return null;
                 }
 
