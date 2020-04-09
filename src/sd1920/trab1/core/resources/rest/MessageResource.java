@@ -27,24 +27,12 @@ public class MessageResource implements MessageService {
     private Discovery discovery;
     private String domain;
     public ClientUtils clientUtils;
-//    private PostMessageQueue mq;
-//    private DeleteMessageQueue dq;
-
 
     public MessageResource(Discovery discovery, String domain) {
         this.randomNumberGenerator = new Random(System.currentTimeMillis());
         this.discovery = discovery;
         this.domain = domain;
         clientUtils = new ClientUtils();
-        // Creates the handler for delivering failed messages
-//        mq = new PostMessageQueue(this);
-//        Thread postMessagesHandler = new Thread(mq);
-//        postMessagesHandler.start();
-//
-//        //creates the handler for deleting messages
-//        dq = new DeleteMessageQueue(this);
-//        Thread deleteMessageHandler = new Thread(dq);
-//        deleteMessageHandler.start();
     }
 
     @Override
@@ -73,6 +61,10 @@ public class MessageResource implements MessageService {
         msg.setId(newID);
 //            Add the message to the global list of messages
         String senderFormated = userExists.getDisplayName() + " <" + userExists.getName() + "@" + domain + ">";
+
+        //I just created this string to not having to split again when processing the failed message
+        String notformatedSender = msg.getSender();
+
         msg.setSender(senderFormated);
         synchronized (this) {
             allMessages.put(newID, msg);
@@ -92,13 +84,10 @@ public class MessageResource implements MessageService {
                 midFromOtherDomain = clientUtils.postOtherDomainMessage(getURI(recipient.split("@")[1], "messages"), toSend, recipient);
 
                 //verificação se a mensagem foi realmente enviada
-               // if (midFromOtherDomain == -1) {
-
-//                    mq.addMessage(msg, newID, recipient);
-
-//                    FALHA NO ENVIO DE mid PARA user
-                   //userFailedMessage(msg, newID, recipient);
-               // }
+                if (midFromOtherDomain == -1) {
+                    //Puts failed sent message in sender inbox
+                    userFailedMessage(msg, recipient, notformatedSender);
+                }
 
             } else {
 
@@ -121,14 +110,13 @@ public class MessageResource implements MessageService {
                     }
 
                 } else {
-//                    mq.addMessage(msg, newID, recipient);
-                    //userFailedMessage(msg, newID, recipient);
+                    //Puts failed sent message in sender inbox
+                    userFailedMessage(msg, recipient, notformatedSender);
                 }
             }
         }
 
         Log.info("Recorded message with identifier: " + newID);
-//        userInboxs.get(msg.getSender()).add(newID);
         return newID;
     }
 
@@ -243,18 +231,15 @@ public class MessageResource implements MessageService {
             synchronized (this) {
                 msg = allMessages.remove(mid);
             }
-        }
-
-
-        if (msg == null)
+        } else {
             return;
+        }
 
         Set<String> msgDestination = msg.getDestination();
 
         for (String user_dest : msgDestination) {
             if (!user_dest.split("@")[1].equals(domain)) {
                 boolean success = clientUtils.deleteOtherDomainMessage(getURI(user_dest.split("@")[1], "messages"), user_dest, msg);
-                // dq.addMessage(msg, user_dest);
                 //NAO ESQUECER DE TRATAR DO SUCESS PARA AS FALHAS
             } else {
                 synchronized (userInboxs) {
@@ -291,8 +276,6 @@ public class MessageResource implements MessageService {
                     userInboxs.put(user, new HashSet<>());
                 }
             }
-
-
             synchronized (userInboxs) {
                 userInboxs.get(user).add(newID);
             }
@@ -323,24 +306,28 @@ public class MessageResource implements MessageService {
     }
 
     //PRIVATE UTIL METHODS
-    private void userFailedMessage(Message msg, long newID, String recipient) {
+    private void userFailedMessage(Message msg, String recipient, String notFormatedSender) {
         Message toUserMessage = new Message();
 
         long newFailedMessageID = Math.abs(randomNumberGenerator.nextLong());
         synchronized (this) {
-            while (allMessages.containsKey(newID)) {
+            while (allMessages.containsKey(newFailedMessageID)) {
                 newFailedMessageID = Math.abs(randomNumberGenerator.nextLong());
             }
         }
+
+
         toUserMessage.setId(newFailedMessageID);
         toUserMessage.setSender(msg.getSender());
         toUserMessage.setDestination(msg.getDestination());
         toUserMessage.setContents(msg.getContents());
-        toUserMessage.setSubject("FALHA NO ENVIO DE " + newID + " " + recipient);
+        toUserMessage.setSubject("FALHA NO ENVIO DE " + msg.getId() + " PARA " + recipient);
 
         synchronized (this) {
             allMessages.put(newFailedMessageID, toUserMessage);
-            userInboxs.get(msg.getSender()).add(newFailedMessageID);
+        }
+        synchronized (this) {
+            userInboxs.get(notFormatedSender).add(newFailedMessageID);
         }
     }
 
@@ -349,8 +336,8 @@ public class MessageResource implements MessageService {
 
         URI[] l = discovery.knownUrisOf(domain);
         for (URI uri : l) {
-            if (uri.toString().contains(serviceType)) {
-                return uri;
+            if (uri.toString().contains("rest")) {
+                return URI.create(uri.toString() + "/" + serviceType);
             }
         }
         return null;

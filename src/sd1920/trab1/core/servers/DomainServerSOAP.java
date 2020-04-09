@@ -10,10 +10,9 @@ import javax.xml.ws.Endpoint;
 
 import com.sun.net.httpserver.HttpServer;
 
+import sd1920.trab1.core.resources.soap.*;
 import sd1920.trab1.api.soap.MessageService;
 import sd1920.trab1.api.soap.UserService;
-import sd1920.trab1.core.resources.soap.MessageResource;
-import sd1920.trab1.core.resources.soap.UsersResource;
 import sd1920.trab1.core.servers.discovery.Discovery;
 
 public class DomainServerSOAP {

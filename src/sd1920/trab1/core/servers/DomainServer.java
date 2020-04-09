@@ -16,10 +16,12 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.logging.Logger;
 
-
+public class DomainServer
+{
     private static Logger Log = Logger.getLogger(DomainServer.class.getName());
 
-    static {
+    static
+    {
         System.setProperty("java.net.preferIPv4Stack", "true");
         System.setProperty("java.util.logging.SimpleFormatter.format", "%4$s: %5$s\n");
     }
@@ -29,7 +31,8 @@ import java.util.logging.Logger;
     public static final String USER_SERVICE = "UserService";
 
 
-    public static void main(String[] args) throws UnknownHostException {
+    public static void main(String[] args) throws UnknownHostException
+    {
         ExecutorService messagePool = Executors.newFixedThreadPool(100);
         ExecutorService usersPool = Executors.newFixedThreadPool(100);
 
@@ -50,13 +53,12 @@ import java.util.logging.Logger;
         ));
 
         usersPool.execute(new Thread(() ->
-                config.register(new UsersResource(domain, discovery))
+                config.register(new UsersResource(discovery, domain))
         ));
 
         JdkHttpServerFactory.createHttpServer(URI.create(serverURI), config);
 
         Log.info(String.format("%s Server ready @ %s\n", MESSAGE_SERVICE, serverURI));
         Log.info(String.format("%s Server ready @ %s\n", USER_SERVICE, serverURI));
-
-
     }
+}

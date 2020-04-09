@@ -6,31 +6,23 @@ import sd1920.trab1.api.soap.UsersException;
 import sd1920.trab1.core.clt.soap.*;
 import sd1920.trab1.core.servers.discovery.Discovery;
 
-import javax.jws.WebMethod;
-import javax.jws.WebService;
+import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response.Status;
 import javax.xml.ws.WebServiceException;
 
-import java.io.*;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.util.HashMap;
-import java.util.logging.Logger;
 
-@WebService(serviceName=UserService.NAME, 
-targetNamespace=UserService.NAMESPACE, 
-endpointInterface=UserService.INTERFACE)
-public class UsersResource implements UserService
-{
-    private HashMap<String, User> users = new HashMap<>();
+public class UsersResource implements UserService {
+
+    private final HashMap<String, User> users = new HashMap<>();
 
     private String domain;
 
-    private static Logger Log = Logger.getLogger(UsersResource.class.getName());
     private Discovery discovery;
 
-    public UsersResource(Discovery discovery, String domain)
-    {
+    public UsersResource(Discovery discovery, String domain) {
         this.domain = domain;
         this.discovery = discovery;
     }
@@ -38,36 +30,23 @@ public class UsersResource implements UserService
     @Override
     public String postUser(User user) throws UsersException
     {
-    	Log.info("\nPOST_USER | USERS RESOURCE.\n");
-        if (user.getName() == null || user.getName().isEmpty()) {
-            throw new UsersException(Status.CONFLICT);
+        User chk;
 
+        synchronized (this) {
+            chk = users.get(user.getName());
         }
 
-        if (user.getPwd() == null || user.getPwd().isEmpty()) {
-            throw new UsersException(Status.CONFLICT);
+        if (user.getName() == null || user.getName().isEmpty() || user.getPwd() == null || user.getPwd().isEmpty()
+                || user.getDomain() == null || user.getDomain().isEmpty() || user.getDisplayName() == null || user.getDisplayName().isEmpty()
+                || chk != null) {
 
-        }
-
-        if (user.getDomain() == null || user.getDomain().isEmpty()) {
-            throw new UsersException(Status.CONFLICT);
-
-        }
-
-        if (user.getDisplayName() == null || user.getDisplayName().isEmpty()) {
-            throw new UsersException(Status.CONFLICT);
-
-        }
-
-
-        if (users.containsKey(user.getName())) {
-            throw new UsersException(Status.CONFLICT);
+        	throw new UsersException(Status.CONFLICT);
         }
 
 
         if (!user.getDomain().equals(domain)) {
-            throw new UsersException(Status.FORBIDDEN);
 
+        	throw new UsersException(Status.FORBIDDEN);
         }
 
         synchronized (this) {
@@ -80,38 +59,47 @@ public class UsersResource implements UserService
     @Override
     public User getUser(String name, String pwd) throws UsersException
     {
+        User user;
+
         synchronized (this) {
-            if (!users.containsKey(name) || !users.get(name).getPwd().equals(pwd)) {
-                throw new UsersException(Status.FORBIDDEN);
-            } else {
-                return users.get(name);
-            }
+            user = users.get(name);
         }
+
+        if (user == null || !user.getPwd().equals(pwd)) {
+        	throw new UsersException(Status.FORBIDDEN);
+
+        } else {
+            return user;
+        }
+
     }
 
     @Override
     public User updateUser(String name, String pwd, User user) throws UsersException
     {
 
+        User chk;
+
         synchronized (this) {
-            if (!users.containsKey(name) || !users.get(name).getPwd().equals(pwd)) {
-                throw new UsersException(Status.FORBIDDEN);
-            }
-//            if (!users.get(name).getPwd().equals(pwd)) {
-//                throw new UsersException(Status.CONFLICT);
-//            }
+            chk = users.get(name);
+        }
 
+        if (chk == null || !chk.getPwd().equals(pwd)) {
+        	throw new UsersException(Status.FORBIDDEN);
+        }
 
-            if (user.getPwd() != null) {
+        if (user.getPwd() != null) {
+            synchronized (this) {
                 users.get(name).setPwd(user.getPwd());
             }
+        }
 
-            if (user.getDisplayName() != null) {
+        if (user.getDisplayName() != null) {
+            synchronized (this) {
                 users.get(name).setDisplayName(user.getDisplayName());
             }
-
-//            updateOnWriteUsers();
         }
+
 
         synchronized (this) {
             return users.get(name);
@@ -121,43 +109,57 @@ public class UsersResource implements UserService
     @Override
     public String checkIfUserExists(String user) throws UsersException
     {
-        if (users.containsKey(user)) {
-            return users.get(user).getDisplayName();
+        User chk;
+
+        synchronized (this) {
+            chk = users.get(user);
+        }
+
+        if (chk != null) {
+            return chk.getDisplayName();
         } else
-            throw new UsersException(Status.NOT_FOUND);
+        	throw new UsersException(Status.NOT_FOUND);
+
     }
 
     @Override
     public User deleteUser(String user, String pwd) throws UsersException
     {
-        synchronized (this)
-        {
-            if (!users.containsKey(user) || !users.get(user).getPwd().equals(pwd))
-                throw new UsersException(Status.FORBIDDEN);
-
-            boolean success = false;
-            
-            try
-            {
-            	success = new ClientUtilsMessages(getURI(domain, "messages").toString()).deleteUserInbox(user);
-            }
-            catch (MalformedURLException | WebServiceException clientEx)
-            {
-            	throw new UsersException(clientEx.getMessage());
-            }
-            
-            if (success)
-            	return users.remove(user);
-            else
-            	return null;
+        User uncheck;
+        synchronized (this) {
+            uncheck = users.get(user);
         }
+
+        if (uncheck == null || !uncheck.getPwd().equals(pwd)) {
+        	throw new UsersException(Status.FORBIDDEN);
+        }
+
+        try
+        {
+        	new ClientUtilsMessages(getURI(domain).toString()).deleteUserInbox(user);
+        }
+        catch (MalformedURLException | WebServiceException clientEx)
+        {
+        	throw new UsersException(clientEx.getMessage());
+        }
+
+        synchronized (this) {
+            uncheck = users.remove(user);
+        }
+        return uncheck;
+
     }
 
-    //UTILS
-    public URI getURI(String domain, String serviceType)
-    {
+    private URI getURI(String domain) {
 
-    	return discovery.getURI(domain, serviceType);
+        URI[] l = discovery.knownUrisOf(domain);
+        for (URI uri : l) {
+            if (uri.toString().contains("rest")) {
+                return URI.create(uri.toString() + "/messages");
+            }
+        }
+        return null;
     }
+
 
 }
