@@ -140,8 +140,8 @@ public class UsersResource implements UserService {
 
         URI[] l = discovery.knownUrisOf(domain);
         for (URI uri : l) {
-            if (uri.toString().contains("messages")) {
-                return uri;
+            if (uri.toString().contains("rest")) {
+                return URI.create(uri.toString() + "/messages");
             }
         }
         return null;

@@ -182,7 +182,7 @@ public class ClientUtils implements ClientUtilsInterface {
                     receivedUser = r.readEntity(new GenericType<String>() {
                     });
                 }else if(r.getStatus() == Response.Status.NOT_FOUND.getStatusCode()){
-                    success = true;
+                    return null;
                 }
 
             } catch (ProcessingException pe) {
