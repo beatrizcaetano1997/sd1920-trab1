@@ -33,8 +33,8 @@ public class DomainServerSOAP {
 	
 	public static void main(String[] args) throws Exception
 	{
-		//ExecutorService messagePool = Executors.newFixedThreadPool(15);
-		//ExecutorService usersPool = Executors.newFixedThreadPool(15);
+		ExecutorService messagePool = Executors.newFixedThreadPool(15);
+		ExecutorService usersPool = Executors.newFixedThreadPool(15);
 		
 		String ip = InetAddress.getLocalHost().getHostAddress();
 		//para correr sem ser no docker, mudar a string para "fct" ou "fcsh" por exemplo
@@ -61,18 +61,17 @@ public class DomainServerSOAP {
 		}));
 		*/
 		
-		/*
+		
 		usersPool.execute(new Thread( () -> {
-			Endpoint soapUsersEndpoint = Endpoint.create(new UsersResource(userDiscovery, domain));
-			soapUsersEndpoint.publish(server.createContext(UserService.PATH));
+			Endpoint soapUsersEndpoint = Endpoint.create(new UsersResource(discovery, domain));
+			soapUsersEndpoint.publish(server.createContext(UserServiceSoap.PATH));
 			Log.info("\nUsers Endpoint Created & Published");
 		}));
-		*/
-		
+		/*
 		Endpoint soapUsersEndpoint = Endpoint.create(new UsersResource(discovery, domain));
 		soapUsersEndpoint.publish(server.createContext(UserServiceSoap.PATH));
 		Log.info("\nUsers Endpoint Created & Published\n");
-		
+		*/
 		server.start();
 		
 		Log.info(String.format("\n%s Server ready @ %s\n", MESSAGE_SERVICE, serverURI));

@@ -16,12 +16,12 @@ import sd1920.trab1.api.Message;
 @WebService(serviceName=MessageServiceSoap.NAME, 
 	targetNamespace=MessageServiceSoap.NAMESPACE, 
 	endpointInterface=MessageServiceSoap.INTERFACE)
-public interface MessageServiceSoap {
+public interface MessageServiceSoap
+{
 	
 	static final String NAME = "messages";
 	static final String NAMESPACE = "http://sd2019";
 	static final String INTERFACE = "sd1920.trab1.api.soap.MessageServiceSoap";
-	
 	static final String PATH = "/soap/messages";
 	
 	/**

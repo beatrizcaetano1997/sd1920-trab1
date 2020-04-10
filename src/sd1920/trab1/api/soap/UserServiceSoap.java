@@ -4,19 +4,19 @@ import javax.jws.WebMethod;
 import javax.jws.WebService;
 import javax.xml.ws.WebServiceProvider;
 
+import sd1920.trab1.api.soap.MessagesException;
 import sd1920.trab1.api.User;
 
 
 @WebService(serviceName=UserServiceSoap.NAME, 
 	targetNamespace=UserServiceSoap.NAMESPACE, 
 	endpointInterface=UserServiceSoap.INTERFACE)
-public interface UserServiceSoap {
+public interface UserServiceSoap
+{
 
 	static final String NAME = "users";
 	static final String NAMESPACE = "http://sd2019";
 	static final String INTERFACE = "sd1920.trab1.api.soap.UserServiceSoap";
-	
-	//static final String PATH = "/users?wsdl";
 	static final String PATH = "/soap/users";
 	
 	/**
@@ -26,7 +26,7 @@ public interface UserServiceSoap {
 	 * @throws MessagesException in case of error.
 	 */
 	@WebMethod
-	public String postUser(User user) throws UsersException;
+	public String postUser(User user) throws MessagesException;
 	
 	/**
 	 * Obtains the information on the user identified by name
@@ -37,7 +37,7 @@ public interface UserServiceSoap {
 	 * @throws MessagesException in case of error.
 	 */
 	@WebMethod
-	public User getUser(String name, String pwd) throws UsersException;
+	public User getUser(String name, String pwd) throws MessagesException;
 	
 	/**
 	 * Modifies the information of a user. Values of null in any field of the user will be 
@@ -50,7 +50,7 @@ public interface UserServiceSoap {
 	 * 409 otherwise
 	 */
 	@WebMethod
-	public User updateUser(String name, String pwd, User user)  throws UsersException;
+	public User updateUser(String name, String pwd, User user)  throws MessagesException;
 
 	/**
 	 * Deletes the user identified by name
@@ -61,9 +61,9 @@ public interface UserServiceSoap {
 	 * @throws MessagesException in case of error.
 	 */
 	@WebMethod
-	public User deleteUser(String name, String pwd) throws UsersException;
+	public User deleteUser(String name, String pwd) throws MessagesException;
 	
 	@WebMethod
-	public String checkIfUserExists(String user) throws UsersException;
+	public String checkIfUserExists(String user) throws MessagesException;
 	
 }

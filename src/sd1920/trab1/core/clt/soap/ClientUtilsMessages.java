@@ -15,7 +15,6 @@ import sd1920.trab1.api.Message;
 import sd1920.trab1.api.User;
 import sd1920.trab1.api.soap.MessageServiceSoap;
 import sd1920.trab1.api.soap.MessagesException;
-import sd1920.trab1.api.soap.UsersException;
 
 public class ClientUtilsMessages implements IClientUtilsMessages
 {

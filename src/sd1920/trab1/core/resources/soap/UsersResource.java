@@ -2,12 +2,11 @@ package sd1920.trab1.core.resources.soap;
 
 import sd1920.trab1.api.User;
 import sd1920.trab1.api.soap.UserServiceSoap;
-import sd1920.trab1.api.soap.UsersException;
 import sd1920.trab1.core.clt.soap.*;
 import sd1920.trab1.core.servers.discovery.Discovery;
+import sd1920.trab1.api.soap.MessagesException;
 
 import javax.jws.WebService;
-import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response.Status;
 import javax.xml.ws.WebServiceException;
 
@@ -32,7 +31,7 @@ public class UsersResource implements UserServiceSoap {
     }
 
     @Override
-    public String postUser(User user) throws UsersException
+    public String postUser(User user) throws MessagesException
     {
         User chk;
 
@@ -44,13 +43,13 @@ public class UsersResource implements UserServiceSoap {
                 || user.getDomain() == null || user.getDomain().isEmpty() || user.getDisplayName() == null || user.getDisplayName().isEmpty()
                 || chk != null) {
 
-        	throw new UsersException(Status.CONFLICT);
+        	throw new MessagesException(Status.CONFLICT);
         }
 
 
         if (!user.getDomain().equals(domain)) {
 
-        	throw new UsersException(Status.FORBIDDEN);
+        	throw new MessagesException(Status.FORBIDDEN);
         }
 
         synchronized (this) {
@@ -61,7 +60,7 @@ public class UsersResource implements UserServiceSoap {
     }
 
     @Override
-    public User getUser(String name, String pwd) throws UsersException
+    public User getUser(String name, String pwd) throws MessagesException
     {
         User user;
 
@@ -70,7 +69,7 @@ public class UsersResource implements UserServiceSoap {
         }
 
         if (user == null || !user.getPwd().equals(pwd)) {
-        	throw new UsersException(Status.FORBIDDEN);
+        	throw new MessagesException(Status.FORBIDDEN);
 
         } else {
             return user;
@@ -79,7 +78,7 @@ public class UsersResource implements UserServiceSoap {
     }
 
     @Override
-    public User updateUser(String name, String pwd, User user) throws UsersException
+    public User updateUser(String name, String pwd, User user) throws MessagesException
     {
 
         User chk;
@@ -89,7 +88,7 @@ public class UsersResource implements UserServiceSoap {
         }
 
         if (chk == null || !chk.getPwd().equals(pwd)) {
-        	throw new UsersException(Status.FORBIDDEN);
+        	throw new MessagesException(Status.FORBIDDEN);
         }
 
         if (user.getPwd() != null) {
@@ -111,7 +110,7 @@ public class UsersResource implements UserServiceSoap {
     }
 
     @Override
-    public String checkIfUserExists(String user) throws UsersException
+    public String checkIfUserExists(String user) throws MessagesException
     {
         User chk;
 
@@ -122,12 +121,12 @@ public class UsersResource implements UserServiceSoap {
         if (chk != null) {
             return chk.getDisplayName();
         } else
-        	throw new UsersException(Status.NOT_FOUND);
+        	throw new MessagesException(Status.NOT_FOUND);
 
     }
 
     @Override
-    public User deleteUser(String user, String pwd) throws UsersException
+    public User deleteUser(String user, String pwd) throws MessagesException
     {
         User uncheck;
         synchronized (this) {
@@ -135,7 +134,7 @@ public class UsersResource implements UserServiceSoap {
         }
 
         if (uncheck == null || !uncheck.getPwd().equals(pwd)) {
-        	throw new UsersException(Status.FORBIDDEN);
+        	throw new MessagesException(Status.FORBIDDEN);
         }
 
         try
@@ -144,7 +143,7 @@ public class UsersResource implements UserServiceSoap {
         }
         catch (MalformedURLException | WebServiceException clientEx)
         {
-        	throw new UsersException(clientEx.getMessage());
+        	throw new MessagesException(clientEx.getMessage());
         }
 
         synchronized (this) {

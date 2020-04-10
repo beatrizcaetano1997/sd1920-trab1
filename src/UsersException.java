@@ -1,4 +1,4 @@
-package sd1920.trab1.api.soap;
+
 
 import javax.ws.rs.core.Response.Status;
 import javax.xml.ws.WebFault;

@@ -17,9 +17,9 @@ import com.sun.xml.ws.client.BindingProviderProperties;
 
 import sd1920.trab1.api.Message;
 import sd1920.trab1.api.User;
+import sd1920.trab1.api.soap.MessagesException;
 import sd1920.trab1.api.soap.MessageServiceSoap;
 import sd1920.trab1.api.soap.UserServiceSoap;
-import sd1920.trab1.api.soap.UsersException;
 import sd1920.trab1.core.clt.rest.ClientUtilsInterface;
 
 public class ClientUtilsUsers implements IClientUtilsUsers
@@ -60,7 +60,7 @@ public class ClientUtilsUsers implements IClientUtilsUsers
                 receivedUser = users.getUser(user, pwd);
                 success = true;
             }
-            catch (UsersException ex)
+            catch (MessagesException ex)
             {
             	success = true;
             }
@@ -94,7 +94,7 @@ public class ClientUtilsUsers implements IClientUtilsUsers
                 receivedId = users.checkIfUserExists(user);
                 success = true;
             }
-            catch (UsersException ex)
+            catch (MessagesException ex)
             {
             	success = true;
             }
