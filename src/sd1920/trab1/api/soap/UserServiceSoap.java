@@ -16,8 +16,8 @@ public interface UserServiceSoap {
 	static final String NAMESPACE = "http://sd2019";
 	static final String INTERFACE = "sd1920.trab1.api.soap.UserServiceSoap";
 	
-	static final String PATH = "/users?wsdl";
-	//static final String PATH = "/soap/users";
+	//static final String PATH = "/users?wsdl";
+	static final String PATH = "/soap/users";
 	
 	/**
 	 * Creates a new user in the local domain.
