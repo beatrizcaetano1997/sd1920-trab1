@@ -5,8 +5,7 @@ import sd1920.trab1.api.User;
 
 import java.net.URI;
 
-public interface ClientUtilsInterface 
-{
+public interface ClientUtilsInterface {
     //In every method to verify the user
     User checkUser(URI uri, String user, String pwd);
 
@@ -14,10 +13,8 @@ public interface ClientUtilsInterface
     Long postOtherDomainMessage(URI uri, Message message, String user);
 
     //Used to delete a given message in other domain ex -> DeleteMessage
-    boolean deleteOtherDomainMessage(URI uri, String user, Message m);
+    void deleteOtherDomainMessage(URI uri, String user, Message m);
 
     //Used to delete a user inbox ex -> DeleteUser
-    boolean deleteUserInbox(URI uri, String user);
-    
-    String userExists(String user, URI uri);
+    void deleteUserInbox(URI uri, String user);
 }

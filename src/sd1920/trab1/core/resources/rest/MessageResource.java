@@ -28,6 +28,7 @@ public class MessageResource implements MessageService {
     private String domain;
     public ClientUtils clientUtils;
 
+
     public MessageResource(Discovery discovery, String domain) {
         this.randomNumberGenerator = new Random(System.currentTimeMillis());
         this.discovery = discovery;
@@ -61,10 +62,8 @@ public class MessageResource implements MessageService {
         msg.setId(newID);
 //            Add the message to the global list of messages
         String senderFormated = userExists.getDisplayName() + " <" + userExists.getName() + "@" + domain + ">";
-
         //I just created this string to not having to split again when processing the failed message
         String notformatedSender = msg.getSender();
-
         msg.setSender(senderFormated);
         synchronized (this) {
             allMessages.put(newID, msg);
@@ -85,6 +84,7 @@ public class MessageResource implements MessageService {
 
                 //verificação se a mensagem foi realmente enviada
                 if (midFromOtherDomain == -1) {
+
                     //Puts failed sent message in sender inbox
                     userFailedMessage(msg, recipient, notformatedSender);
                 }
@@ -239,8 +239,7 @@ public class MessageResource implements MessageService {
 
         for (String user_dest : msgDestination) {
             if (!user_dest.split("@")[1].equals(domain)) {
-                boolean success = clientUtils.deleteOtherDomainMessage(getURI(user_dest.split("@")[1], "messages"), user_dest, msg);
-                //NAO ESQUECER DE TRATAR DO SUCESS PARA AS FALHAS
+                clientUtils.deleteOtherDomainMessage(getURI(user_dest.split("@")[1], "messages"), user_dest, msg);
             } else {
                 synchronized (userInboxs) {
                     userInboxs.get(user_dest).remove(mid);
@@ -276,6 +275,8 @@ public class MessageResource implements MessageService {
                     userInboxs.put(user, new HashSet<>());
                 }
             }
+
+
             synchronized (userInboxs) {
                 userInboxs.get(user).add(newID);
             }
@@ -350,14 +351,4 @@ public class MessageResource implements MessageService {
         return toSend;
     }
 
-    public void deleteFailedMessage(long mid, String user, String recipient) {
-        synchronized (this) {
-            for (long mids : userInboxs.get(user)) {
-                if (allMessages.get(mids).getSubject().equals("FALHA NO ENVIO DE " + mid + " " + recipient)) {
-                    allMessages.remove(mids);
-                    userInboxs.get(user).remove(mids);
-                }
-            }
-        }
-    }
 }

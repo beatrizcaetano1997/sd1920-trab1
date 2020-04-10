@@ -53,7 +53,7 @@ public class DomainServer
         ));
 
         usersPool.execute(new Thread(() ->
-                config.register(new UsersResource(discovery, domain))
+                config.register(new UsersResource(domain, discovery))
         ));
 
         JdkHttpServerFactory.createHttpServer(URI.create(serverURI), config);

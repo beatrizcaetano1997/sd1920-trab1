@@ -19,7 +19,7 @@ public class UsersResource implements UserService {
     private Discovery discovery;
     private ClientUtils clientUtils;
 
-    public UsersResource(Discovery discovery, String domain) {
+    public UsersResource(String domain, Discovery discovery) {
         this.domain = domain;
         this.discovery = discovery;
         clientUtils = new ClientUtils();
