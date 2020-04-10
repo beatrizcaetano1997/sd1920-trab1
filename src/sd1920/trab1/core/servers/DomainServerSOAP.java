@@ -33,8 +33,8 @@ public class DomainServerSOAP {
 	
 	public static void main(String[] args) throws Exception
 	{
-		ExecutorService messagePool = Executors.newFixedThreadPool(15);
-		ExecutorService usersPool = Executors.newFixedThreadPool(15);
+		ExecutorService messagePool = Executors.newFixedThreadPool(100);
+		ExecutorService usersPool = Executors.newFixedThreadPool(100);
 		
 		String ip = InetAddress.getLocalHost().getHostAddress();
 		//para correr sem ser no docker, mudar a string para "fct" ou "fcsh" por exemplo
