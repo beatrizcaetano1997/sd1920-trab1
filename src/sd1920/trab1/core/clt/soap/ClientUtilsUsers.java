@@ -29,9 +29,7 @@ public class ClientUtilsUsers implements IClientUtilsUsers
     private static final int MAX_RETRIES = 3;
     private static final int RETRY_PERIOD = 1000;
     
-    //TODO: TEST WHICH ONE
-    //private static final String USERS_WSDL = "/users?wsdl";
-    private static final String USERS_WSDL = "?wsdl";
+    private static final String USERS_WSDL = "users/?wsdl";
     
     QName QNAME;
     Service service;

@@ -24,9 +24,7 @@ public class ClientUtilsMessages implements IClientUtilsMessages
     private static final int MAX_RETRIES = 3;
     private static final int RETRY_PERIOD = 1000;
     
-    //TODO_TEST
-    //private static final String MESSAGES_WSDL = "/messages?wsdl";
-    private static final String MESSAGES_WSDL = "?wsdl";
+    private static final String MESSAGES_WSDL = "/messages?wsdl";
     
     QName QNAME;
     Service service;
