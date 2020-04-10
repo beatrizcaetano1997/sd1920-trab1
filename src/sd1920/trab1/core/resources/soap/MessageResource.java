@@ -6,6 +6,7 @@ import java.util.*;
 import java.util.logging.Logger;
 
 import javax.inject.Singleton;
+import javax.jws.WebService;
 import javax.ws.rs.*;
 
 import javax.ws.rs.core.Response.Status;
@@ -18,7 +19,9 @@ import sd1920.trab1.api.soap.MessagesException;
 import sd1920.trab1.core.clt.soap.*;
 import sd1920.trab1.core.servers.discovery.Discovery;
 
-@Singleton
+@WebService(serviceName=MessageService.NAME, 
+targetNamespace=MessageService.NAMESPACE, 
+endpointInterface=MessageService.INTERFACE)
 public class MessageResource implements MessageService
 {
 

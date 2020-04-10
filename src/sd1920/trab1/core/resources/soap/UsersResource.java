@@ -6,6 +6,7 @@ import sd1920.trab1.api.soap.UsersException;
 import sd1920.trab1.core.clt.soap.*;
 import sd1920.trab1.core.servers.discovery.Discovery;
 
+import javax.jws.WebService;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response.Status;
 import javax.xml.ws.WebServiceException;
@@ -14,6 +15,9 @@ import java.net.MalformedURLException;
 import java.net.URI;
 import java.util.HashMap;
 
+@WebService(serviceName=UserService.NAME, 
+targetNamespace=UserService.NAMESPACE, 
+endpointInterface=UserService.INTERFACE)
 public class UsersResource implements UserService {
 
     private final HashMap<String, User> users = new HashMap<>();

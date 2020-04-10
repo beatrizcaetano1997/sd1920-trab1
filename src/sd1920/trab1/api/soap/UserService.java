@@ -2,8 +2,10 @@ package sd1920.trab1.api.soap;
 
 import javax.jws.WebMethod;
 import javax.jws.WebService;
+import javax.xml.ws.WebServiceProvider;
 
 import sd1920.trab1.api.User;
+
 
 @WebService(serviceName=UserService.NAME, 
 	targetNamespace=UserService.NAMESPACE, 
@@ -14,6 +16,7 @@ public interface UserService {
 	static final String NAMESPACE = "http://sd2019";
 	static final String INTERFACE = "sd1920.trab1.api.soap.UserService";
 	
+	//static final String PATH = "/users?wsdl";
 	static final String PATH = "/soap/users";
 	
 	/**

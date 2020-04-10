@@ -39,13 +39,10 @@ public class DomainServerSOAP {
 		String ip = InetAddress.getLocalHost().getHostAddress();
 		//para correr sem ser no docker, mudar a string para "fct" ou "fcsh" por exemplo
 		String domain = InetAddress.getLocalHost().getHostName();	
-		String serverURI = String.format("http://%s:%s", ip, PORT);
+		String serverURI = String.format("http://%s:%s/soap", ip, PORT);
 		
-		Discovery messageDiscovery = new Discovery(new InetSocketAddress("226.226.226.226", 2266), domain, serverURI + MessageService.PATH);
-		messageDiscovery.start();
-
-		Discovery userDiscovery = new Discovery(new InetSocketAddress("226.226.226.226", 2266), domain, serverURI + UserService.PATH);
-		userDiscovery.start();
+		Discovery discovery = new Discovery(new InetSocketAddress("226.226.226.226", 2266), domain, serverURI);
+		discovery.start();
 		
 		// Create an HTTP server, accepting requests at PORT (from all local interfaces)
 		HttpServer server = HttpServer.create(new InetSocketAddress(ip, PORT), 0);
@@ -72,7 +69,7 @@ public class DomainServerSOAP {
 		}));
 		*/
 		
-		Endpoint soapUsersEndpoint = Endpoint.create(new UsersResource(userDiscovery, domain));
+		Endpoint soapUsersEndpoint = Endpoint.create(new UsersResource(discovery, domain));
 		soapUsersEndpoint.publish(server.createContext(UserService.PATH));
 		Log.info("\nUsers Endpoint Created & Published\n");
 		
