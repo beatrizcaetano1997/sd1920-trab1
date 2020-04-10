@@ -49,17 +49,12 @@ public class DomainServerSOAP {
 		Log.info("\n SERVER AT: " + ip + ":" + PORT + ".\n");
 		server.setExecutor(Executors.newCachedThreadPool());
 		
-		// Create a SOAP Endpoint (you need one for each service)
-		// One thread per each endpoint
-		//TODO: SEE HOW TO PUT EACH ENDPOINT IN THREAD
 		
-		/*
 		messagePool.execute(new Thread( () -> {
-			Endpoint soapMessagesEndpoint = Endpoint.create(new MessageResource(messageDiscovery, domain));
-			soapMessagesEndpoint.publish(server.createContext(MessageService.PATH));
+			Endpoint soapMessagesEndpoint = Endpoint.create(new MessageResource(discovery, domain));
+			soapMessagesEndpoint.publish(server.createContext(MessageServiceSoap.PATH));
 			Log.info("\nMessage Endpoint Created & Published");
 		}));
-		*/
 		
 		
 		usersPool.execute(new Thread( () -> {

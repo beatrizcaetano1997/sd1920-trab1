@@ -13,12 +13,15 @@ import javax.xml.ws.WebServiceException;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.util.HashMap;
+import java.util.logging.Logger;
 
 @WebService(serviceName=UserServiceSoap.NAME, 
 targetNamespace=UserServiceSoap.NAMESPACE, 
 endpointInterface=UserServiceSoap.INTERFACE)
 public class UsersResource implements UserServiceSoap {
 
+	private static Logger Log = Logger.getLogger(UsersResource.class.getName());
+	
     private final HashMap<String, User> users = new HashMap<>();
 
     private String domain;
@@ -139,6 +142,7 @@ public class UsersResource implements UserServiceSoap {
 
         try
         {
+        	Log.info("URI to CLIENT: " + getURI(domain).toString());
         	new ClientUtilsMessages(getURI(domain).toString()).deleteUserInbox(user);
         }
         catch (MalformedURLException | WebServiceException clientEx)
@@ -157,7 +161,7 @@ public class UsersResource implements UserServiceSoap {
 
         URI[] l = discovery.knownUrisOf(domain);
         for (URI uri : l) {
-            if (uri.toString().contains("rest")) {
+            if (uri.toString().contains("soap")) {
                 return URI.create(uri.toString() + "/messages");
             }
         }

@@ -426,7 +426,7 @@ public class MessageResource implements MessageServiceSoap
 
         URI[] l = discovery.knownUrisOf(domain);
         for (URI uri : l) {
-            if (uri.toString().contains("rest")) {
+            if (uri.toString().contains("soap")) {
                 return URI.create(uri.toString() + "/" + serviceType);
             }
         }
