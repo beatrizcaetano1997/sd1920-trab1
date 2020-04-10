@@ -28,8 +28,6 @@ public class DomainServerSOAP {
 	public static final int PORT = 8080;
 	public static final String MESSAGE_SERVICE = "MessageService";
 	public static final String USER_SERVICE = "UserService";
-
-	//public static final String SOAP_MESSAGES_PATH = "/soap/messages"; //THIS IS TO BE PUT IN API.SOAP/MESSAGE&USERService
 	
 	public static void main(String[] args) throws Exception
 	{
@@ -47,26 +45,22 @@ public class DomainServerSOAP {
 		// Create an HTTP server, accepting requests at PORT (from all local interfaces)
 		HttpServer server = HttpServer.create(new InetSocketAddress(ip, PORT), 0);
 		Log.info("\n SERVER AT: " + ip + ":" + PORT + ".\n");
-		server.setExecutor(Executors.newCachedThreadPool());
-		
-		
+		//server.setExecutor(Executors.newCachedThreadPool());
+
 		messagePool.execute(new Thread( () -> {
 			Endpoint soapMessagesEndpoint = Endpoint.create(new MessageResource(discovery, domain));
 			soapMessagesEndpoint.publish(server.createContext(MessageServiceSoap.PATH));
 			Log.info("\nMessage Endpoint Created & Published");
 		}));
 		
-		
 		usersPool.execute(new Thread( () -> {
 			Endpoint soapUsersEndpoint = Endpoint.create(new UsersResource(discovery, domain));
 			soapUsersEndpoint.publish(server.createContext(UserServiceSoap.PATH));
 			Log.info("\nUsers Endpoint Created & Published");
 		}));
-		/*
-		Endpoint soapUsersEndpoint = Endpoint.create(new UsersResource(discovery, domain));
-		soapUsersEndpoint.publish(server.createContext(UserServiceSoap.PATH));
-		Log.info("\nUsers Endpoint Created & Published\n");
-		*/
+		
+		Thread.sleep(100);
+
 		server.start();
 		
 		Log.info(String.format("\n%s Server ready @ %s\n", MESSAGE_SERVICE, serverURI));
