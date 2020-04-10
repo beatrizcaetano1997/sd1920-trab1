@@ -11,8 +11,8 @@ import javax.xml.ws.Endpoint;
 import com.sun.net.httpserver.HttpServer;
 
 import sd1920.trab1.core.resources.soap.*;
-import sd1920.trab1.api.soap.MessageService;
-import sd1920.trab1.api.soap.UserService;
+import sd1920.trab1.api.soap.MessageServiceSoap;
+import sd1920.trab1.api.soap.UserServiceSoap;
 import sd1920.trab1.core.servers.discovery.Discovery;
 
 public class DomainServerSOAP {
@@ -70,7 +70,7 @@ public class DomainServerSOAP {
 		*/
 		
 		Endpoint soapUsersEndpoint = Endpoint.create(new UsersResource(discovery, domain));
-		soapUsersEndpoint.publish(server.createContext(UserService.PATH));
+		soapUsersEndpoint.publish(server.createContext(UserServiceSoap.PATH));
 		Log.info("\nUsers Endpoint Created & Published\n");
 		
 		server.start();

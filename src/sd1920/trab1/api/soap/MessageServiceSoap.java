@@ -13,14 +13,14 @@ import javax.ws.rs.core.MediaType;
 
 import sd1920.trab1.api.Message;
 
-@WebService(serviceName=MessageService.NAME, 
-	targetNamespace=MessageService.NAMESPACE, 
-	endpointInterface=MessageService.INTERFACE)
-public interface MessageService {
+@WebService(serviceName=MessageServiceSoap.NAME, 
+	targetNamespace=MessageServiceSoap.NAMESPACE, 
+	endpointInterface=MessageServiceSoap.INTERFACE)
+public interface MessageServiceSoap {
 	
 	static final String NAME = "messages";
 	static final String NAMESPACE = "http://sd2019";
-	static final String INTERFACE = "sd1920.trab1.api.soap.MessageService";
+	static final String INTERFACE = "sd1920.trab1.api.soap.MessageServiceSoap";
 	
 	static final String PATH = "/messages?wsdl";
 	

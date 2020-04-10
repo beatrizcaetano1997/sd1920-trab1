@@ -17,8 +17,8 @@ import com.sun.xml.ws.client.BindingProviderProperties;
 
 import sd1920.trab1.api.Message;
 import sd1920.trab1.api.User;
-import sd1920.trab1.api.soap.MessageService;
-import sd1920.trab1.api.soap.UserService;
+import sd1920.trab1.api.soap.MessageServiceSoap;
+import sd1920.trab1.api.soap.UserServiceSoap;
 import sd1920.trab1.api.soap.UsersException;
 import sd1920.trab1.core.clt.rest.ClientUtilsInterface;
 
@@ -35,13 +35,13 @@ public class ClientUtilsUsers implements IClientUtilsUsers
     
     QName QNAME;
     Service service;
-    UserService users;
+    UserServiceSoap users;
 	
 	public ClientUtilsUsers(String serverURI) throws MalformedURLException, WebServiceException
 	{
-		QNAME = new QName(MessageService.NAMESPACE, MessageService.NAME);
+		QNAME = new QName(MessageServiceSoap.NAMESPACE, MessageServiceSoap.NAME);
 		Service service = Service.create(new URL(serverURI + USERS_WSDL), QNAME);
-		users = service.getPort( sd1920.trab1.api.soap.UserService.class );
+		users = service.getPort( sd1920.trab1.api.soap.UserServiceSoap.class );
 		
 		((BindingProvider) users).getRequestContext().put(BindingProviderProperties.CONNECT_TIMEOUT, CONNECTION_TIMEOUT);
 		((BindingProvider) users).getRequestContext().put(BindingProviderProperties.REQUEST_TIMEOUT, REPLY_TIMOUT);

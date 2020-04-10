@@ -14,15 +14,15 @@ import javax.xml.ws.WebServiceException;
 
 import sd1920.trab1.api.Message;
 import sd1920.trab1.api.User;
-import sd1920.trab1.api.soap.MessageService;
+import sd1920.trab1.api.soap.MessageServiceSoap;
 import sd1920.trab1.api.soap.MessagesException;
 import sd1920.trab1.core.clt.soap.*;
 import sd1920.trab1.core.servers.discovery.Discovery;
 
-@WebService(serviceName=MessageService.NAME, 
-targetNamespace=MessageService.NAMESPACE, 
-endpointInterface=MessageService.INTERFACE)
-public class MessageResource implements MessageService
+@WebService(serviceName=MessageServiceSoap.NAME, 
+targetNamespace=MessageServiceSoap.NAMESPACE, 
+endpointInterface=MessageServiceSoap.INTERFACE)
+public class MessageResource implements MessageServiceSoap
 {
 
     private Random randomNumberGenerator;

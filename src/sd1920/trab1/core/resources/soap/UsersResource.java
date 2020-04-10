@@ -1,7 +1,7 @@
 package sd1920.trab1.core.resources.soap;
 
 import sd1920.trab1.api.User;
-import sd1920.trab1.api.soap.UserService;
+import sd1920.trab1.api.soap.UserServiceSoap;
 import sd1920.trab1.api.soap.UsersException;
 import sd1920.trab1.core.clt.soap.*;
 import sd1920.trab1.core.servers.discovery.Discovery;
@@ -15,10 +15,10 @@ import java.net.MalformedURLException;
 import java.net.URI;
 import java.util.HashMap;
 
-@WebService(serviceName=UserService.NAME, 
-targetNamespace=UserService.NAMESPACE, 
-endpointInterface=UserService.INTERFACE)
-public class UsersResource implements UserService {
+@WebService(serviceName=UserServiceSoap.NAME, 
+targetNamespace=UserServiceSoap.NAMESPACE, 
+endpointInterface=UserServiceSoap.INTERFACE)
+public class UsersResource implements UserServiceSoap {
 
     private final HashMap<String, User> users = new HashMap<>();
 

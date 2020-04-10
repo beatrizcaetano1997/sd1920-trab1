@@ -13,7 +13,7 @@ import com.sun.xml.ws.client.BindingProviderProperties;
 
 import sd1920.trab1.api.Message;
 import sd1920.trab1.api.User;
-import sd1920.trab1.api.soap.MessageService;
+import sd1920.trab1.api.soap.MessageServiceSoap;
 import sd1920.trab1.api.soap.MessagesException;
 import sd1920.trab1.api.soap.UsersException;
 
@@ -31,13 +31,13 @@ public class ClientUtilsMessages implements IClientUtilsMessages
     
     QName QNAME;
     Service service;
-    MessageService messages;
+    MessageServiceSoap messages;
 	
 	public ClientUtilsMessages(String serverURI) throws MalformedURLException, WebServiceException
 	{
-		QNAME = new QName(MessageService.NAMESPACE, MessageService.NAME);
+		QNAME = new QName(MessageServiceSoap.NAMESPACE, MessageServiceSoap.NAME);
 		Service service = Service.create(new URL(serverURI + MESSAGES_WSDL), QNAME);
-		messages = service.getPort( sd1920.trab1.api.soap.MessageService.class );
+		messages = service.getPort( sd1920.trab1.api.soap.MessageServiceSoap.class );
 		
 		((BindingProvider) messages).getRequestContext().put(BindingProviderProperties.CONNECT_TIMEOUT, CONNECTION_TIMEOUT);
 		((BindingProvider) messages).getRequestContext().put(BindingProviderProperties.REQUEST_TIMEOUT, REPLY_TIMOUT);
