@@ -37,8 +37,7 @@ public class ClientUtilsUsers implements IClientUtilsUsers
 	
 	public ClientUtilsUsers(String serverURI) throws MalformedURLException, WebServiceException
 	{
-		System.out.println(serverURI);
-		QNAME = new QName(MessageServiceSoap.NAMESPACE, MessageServiceSoap.NAME);
+		QNAME = new QName(UserServiceSoap.NAMESPACE, UserServiceSoap.NAME);
 		Service service = Service.create(new URL(serverURI + USERS_WSDL), QNAME);
 		users = service.getPort( sd1920.trab1.api.soap.UserServiceSoap.class );
 		
@@ -90,7 +89,7 @@ public class ClientUtilsUsers implements IClientUtilsUsers
         while (!success && retries < MAX_RETRIES) {
             try
             {
-                receivedId = users.checkIfUserExists(user);
+                receivedId = users.checkIfUserExists(user.split("@")[0]);
                 success = true;
             }
             catch (MessagesException ex)

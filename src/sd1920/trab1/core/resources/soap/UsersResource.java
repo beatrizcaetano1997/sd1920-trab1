@@ -116,9 +116,9 @@ public class UsersResource implements UserServiceSoap {
     @Override
     public String checkIfUserExists(String user) throws MessagesException
     {
-        User chk;
-
-        synchronized (this) {
+        User chk = null;
+        synchronized (this)
+        {
             chk = users.get(user);
         }
 

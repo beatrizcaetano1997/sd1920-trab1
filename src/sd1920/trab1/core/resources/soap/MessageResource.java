@@ -112,7 +112,7 @@ public class MessageResource implements MessageServiceSoap {
             }
             else
             {
-            	String chk;
+            	String chk = null;
 				try
 				{
 					chk = new ClientUtilsUsers(getURI(domain, UserServiceSoap.NAME).toString()).userExists(recipient);
@@ -326,10 +326,12 @@ public class MessageResource implements MessageServiceSoap {
     @Override
     public long postOtherMessageDomain(Message m, String user) throws MessagesException
     {
-    	String chk;
+    	String chk = null;
 		try
 		{
 			chk = new ClientUtilsUsers(getURI(domain, UserServiceSoap.NAME).toString()).userExists(user);
+			System.out.println(getURI(domain, UserServiceSoap.NAME).toString());
+			System.out.println(chk);
 		}
 		catch (MalformedURLException | WebServiceException e)
 		{
