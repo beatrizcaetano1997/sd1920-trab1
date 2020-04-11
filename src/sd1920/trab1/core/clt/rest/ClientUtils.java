@@ -9,26 +9,30 @@ import javax.ws.rs.ProcessingException;
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.client.Entity;
+import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.GenericType;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.net.URI;
 
-public class ClientUtils implements ClientUtilsInterface {
+public class ClientUtils implements ClientUtilsInterface
+{
     private static final int CONNECTION_TIMEOUT = 10000;
     private static final int REPLY_TIMOUT = 600;
     private static final int MAX_RETRIES = 3;
     private static final int RETRY_PERIOD = 1000;
 
-    Client client;
-    ClientConfig config;
+    private final Client client;
+    private final ClientConfig config;
+    //private final WebTarget target;
 
-
-    public ClientUtils() {
+    public ClientUtils()
+    {
         config = new ClientConfig();
         config.property(ClientProperties.CONNECT_TIMEOUT, CONNECTION_TIMEOUT);
         config.property(ClientProperties.READ_TIMEOUT, REPLY_TIMOUT);
         client = ClientBuilder.newClient(config);
+        //target = client.target(uri);  
     }
 
     //In every method to verify the user
