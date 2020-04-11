@@ -332,16 +332,9 @@ public class MessageResource implements MessageService {
         }
     }
 
-    public URI getURI(String domain, String serviceType) {
-
-
-        URI[] l = discovery.knownUrisOf(domain);
-        for (URI uri : l) {
-            if (uri.toString().contains("rest")) {
-                return URI.create(uri.toString() + "/" + serviceType);
-            }
-        }
-        return null;
+    public URI getURI(String domain, String serviceType)
+    {
+    	return discovery.getURI(domain, serviceType, discovery.WS_REST);
     }
 
     private Message getMessage(Message msg) {

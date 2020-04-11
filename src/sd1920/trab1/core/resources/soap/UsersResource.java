@@ -4,6 +4,7 @@ import sd1920.trab1.api.User;
 import sd1920.trab1.api.soap.UserServiceSoap;
 import sd1920.trab1.core.clt.soap.*;
 import sd1920.trab1.core.servers.discovery.Discovery;
+import sd1920.trab1.api.soap.MessageServiceSoap;
 import sd1920.trab1.api.soap.MessagesException;
 
 import javax.jws.WebService;
@@ -115,9 +116,9 @@ public class UsersResource implements UserServiceSoap {
     @Override
     public String checkIfUserExists(String user) throws MessagesException
     {
-        User chk;
-
-        synchronized (this) {
+        User chk = null;
+        synchronized (this)
+        {
             chk = users.get(user);
         }
 
@@ -142,8 +143,7 @@ public class UsersResource implements UserServiceSoap {
 
         try
         {
-        	Log.info("URI to CLIENT: " + getURI(domain).toString());
-        	new ClientUtilsMessages(getURI(domain).toString()).deleteUserInbox(user);
+        	new ClientUtilsMessages(getURI(domain, MessageServiceSoap.NAME).toString()).deleteUserInbox(user);
         }
         catch (MalformedURLException | WebServiceException clientEx)
         {
@@ -157,15 +157,9 @@ public class UsersResource implements UserServiceSoap {
 
     }
 
-    private URI getURI(String domain) {
-
-        URI[] l = discovery.knownUrisOf(domain);
-        for (URI uri : l) {
-            if (uri.toString().contains("soap")) {
-                return URI.create(uri.toString() + "/messages");
-            }
-        }
-        return null;
+    private URI getURI(String domain, String serviceType)
+    {
+    	return discovery.getURI(domain, serviceType, discovery.WS_SOAP);
     }
 
 

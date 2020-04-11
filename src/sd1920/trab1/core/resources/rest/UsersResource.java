@@ -1,6 +1,7 @@
 package sd1920.trab1.core.resources.rest;
 
 import sd1920.trab1.api.User;
+import sd1920.trab1.api.rest.MessageService;
 import sd1920.trab1.api.rest.UserService;
 import sd1920.trab1.core.clt.rest.ClientUtils;
 import sd1920.trab1.core.servers.discovery.Discovery;
@@ -128,7 +129,8 @@ public class UsersResource implements UserService {
             throw new WebApplicationException(Status.FORBIDDEN);
         }
 
-        clientUtils.deleteUserInbox(getURI(domain), user);
+        String messageService = MessageService.PATH.substring(1);
+        clientUtils.deleteUserInbox(getURI(domain, messageService), user);
 
         synchronized (this) {
             uncheck = users.remove(user);
@@ -137,16 +139,11 @@ public class UsersResource implements UserService {
 
     }
 
-    private URI getURI(String domain) {
-
-        URI[] l = discovery.knownUrisOf(domain);
-        for (URI uri : l) {
-            if (uri.toString().contains("rest")) {
-                return URI.create(uri.toString() + "/messages");
-            }
-        }
-        return null;
+    private URI getURI(String domain, String serviceType)
+    {
+    	return discovery.getURI(domain, serviceType, discovery.WS_REST);
     }
+
 
 
 }

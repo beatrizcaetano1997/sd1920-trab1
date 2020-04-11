@@ -19,7 +19,8 @@ import java.util.logging.Logger;
  *
  * <p>&lt;service-name-string&gt;&lt;delimiter-char&gt;&lt;service-uri-string&gt;</p>
  */
-public class Discovery {
+public class Discovery
+{
     private static Logger Log = Logger.getLogger(Discovery.class.getName());
 
     static {
@@ -34,6 +35,9 @@ public class Discovery {
     static final InetSocketAddress DISCOVERY_ADDR = new InetSocketAddress("226.226.226.226", 2266);
     static final int DISCOVERY_PERIOD = 1000;
     static final int DISCOVERY_TIMEOUT = 5000;
+    
+    public static final String WS_SOAP = "soap";
+    public static final String WS_REST = "rest";
 
     // Used separate the two fields that make up a service announcement.
     private static final String DELIMITER = "\t";
@@ -50,15 +54,11 @@ public class Discovery {
      * @param serviceURI  an uri string - representing the contact endpoint of the service being announced
      */
     //O Service name vai passar a ser o dominio
-    public Discovery(InetSocketAddress addr, String serviceName, String serviceURI) {
+    public Discovery(InetSocketAddress addr, String serviceName, String serviceURI)
+    {
         this.addr = addr;
         this.serviceName = serviceName;
         this.serviceURI = serviceURI;
-    }
-
-    public Discovery(InetSocketAddress addr, String serviceName) {
-        this.addr = addr;
-        this.serviceName = serviceName;
     }
 
     /**
@@ -103,7 +103,7 @@ public class Discovery {
 //                            System.out.printf("FROM %s (%s) : %s\n",
 //                                    pkt.getAddress().getCanonicalHostName(),
 //                                    pkt.getAddress().getHostAddress(), msg);
-                            if (uriService.toString().contains("rest")) {
+                            if (uriService.toString().contains(WS_REST)) {
                                 restURIS.put(msgElems[0], uriService);
                             } else {
                                 soapURIS.put(msgElems[0], uriService);
@@ -125,44 +125,6 @@ public class Discovery {
         }
     }
 
-    public void startClient() {
-        try (MulticastSocket ms = new MulticastSocket(addr.getPort())) {
-            ms.joinGroup(addr.getAddress());
-
-            // start thread to collect announcements
-            new Thread(() -> {
-                DatagramPacket pkt = new DatagramPacket(new byte[1024], 1024);
-                for (; ; ) {
-                    try {
-                        long start = System.currentTimeMillis();
-                        pkt.setLength(1024);
-                        ms.receive(pkt);
-                        String msg = new String(pkt.getData(), 0, pkt.getLength());
-                        String[] msgElems = msg.split(DELIMITER);
-                        URI uriService = URI.create(msgElems[1]);
-
-                        if (msgElems.length == 2) {    //periodic announcement
-//                            System.out.printf("FROM %s (%s) : %s\n",
-//                                    pkt.getAddress().getCanonicalHostName(),
-//                                    pkt.getAddress().getHostAddress(), msg);
-                            if (uriService.toString().contains("users")) {
-                                restURIS.put(msgElems[0], uriService);
-                            } else {
-                                soapURIS.put(msgElems[0], uriService);
-                            }
-
-                        }
-                    } catch (IOException e) {
-                        // do nothing
-                    }
-                }
-            }).start();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-
     /**
      * Returns the known servers for a service.
      *
@@ -171,7 +133,6 @@ public class Discovery {
      */
     public URI[] knownUrisOf(String serviceName)
     {
-
         Set<URI> discoveredUris = new HashSet<>();
 
         for (String key : restURIS.keySet()) {
@@ -189,15 +150,20 @@ public class Discovery {
         return discoveredUris.toArray(new URI[discoveredUris.size()]);
     }
 
-    public URI getURI(String domain, String serviceType) {
-
-        URI[] l = knownUrisOf(domain);
-        for (URI uri : l) {
-            if (uri.toString().contains(serviceType)) {
-                return uri;
-            }
-        }
-        return null;
+    public URI getURI(String domain, String serviceType, String ws)
+    {
+    	URI uri = null;
+    	switch(ws)
+    	{
+    	case WS_REST: uri = restURIS.get(domain);
+    				  uri = URI.create(uri.toString() + "/" + serviceType);
+    		break;
+    	case WS_SOAP: uri = soapURIS.get(domain);
+    				  uri = URI.create(uri.toString());
+    		break;
+    	}
+    	Log.info("DISCOVERY URI " + uri);
+    	return uri;
     }
-    
+
 }

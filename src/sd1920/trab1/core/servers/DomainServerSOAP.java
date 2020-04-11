@@ -2,16 +2,22 @@ package sd1920.trab1.core.servers;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.MalformedURLException;
+import java.net.URI;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.logging.Logger;
 
 import javax.xml.ws.Endpoint;
+import javax.xml.ws.WebServiceException;
 
 import com.sun.net.httpserver.HttpServer;
 
+import sd1920.trab1.core.clt.soap.ClientUtilsUsers;
 import sd1920.trab1.core.resources.soap.*;
+import sd1920.trab1.api.User;
 import sd1920.trab1.api.soap.MessageServiceSoap;
+import sd1920.trab1.api.soap.MessagesException;
 import sd1920.trab1.api.soap.UserServiceSoap;
 import sd1920.trab1.core.servers.discovery.Discovery;
 
@@ -31,8 +37,8 @@ public class DomainServerSOAP {
 	
 	public static void main(String[] args) throws Exception
 	{
-		ExecutorService messagePool = Executors.newFixedThreadPool(100);
-		ExecutorService usersPool = Executors.newFixedThreadPool(100);
+		//ExecutorService messagePool = Executors.newFixedThreadPool(100);
+		//ExecutorService usersPool = Executors.newFixedThreadPool(100);
 		
 		String ip = InetAddress.getLocalHost().getHostAddress();
 		//para correr sem ser no docker, mudar a string para "fct" ou "fcsh" por exemplo
@@ -45,22 +51,20 @@ public class DomainServerSOAP {
 		// Create an HTTP server, accepting requests at PORT (from all local interfaces)
 		HttpServer server = HttpServer.create(new InetSocketAddress(ip, PORT), 0);
 		Log.info("\n SERVER AT: " + ip + ":" + PORT + ".\n");
-		//server.setExecutor(Executors.newCachedThreadPool());
-
-		messagePool.execute(new Thread( () -> {
-			Endpoint soapMessagesEndpoint = Endpoint.create(new MessageResource(discovery, domain));
-			soapMessagesEndpoint.publish(server.createContext(MessageServiceSoap.PATH));
-			Log.info("\nMessage Endpoint Created & Published");
-		}));
+		server.setExecutor(Executors.newCachedThreadPool());
 		
-		usersPool.execute(new Thread( () -> {
-			Endpoint soapUsersEndpoint = Endpoint.create(new UsersResource(discovery, domain));
-			soapUsersEndpoint.publish(server.createContext(UserServiceSoap.PATH));
-			Log.info("\nUsers Endpoint Created & Published");
-		}));
+		Endpoint soapUsersEndpoint = Endpoint.create(new UsersResource(discovery, domain));
+		soapUsersEndpoint.publish(server.createContext(UserServiceSoap.PATH));
+		Log.info("\nUsers Endpoint Created & Published");
 		
 		Thread.sleep(100);
 
+		Endpoint soapMessagesEndpoint = Endpoint.create(new MessageResource(discovery, domain));
+		soapMessagesEndpoint.publish(server.createContext(MessageServiceSoap.PATH));
+		Log.info("\nMessage Endpoint Created & Published");
+	
+		Thread.sleep(100);
+		
 		server.start();
 		
 		Log.info(String.format("\n%s Server ready @ %s\n", MESSAGE_SERVICE, serverURI));
