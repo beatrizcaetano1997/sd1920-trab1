@@ -80,7 +80,7 @@ public class ClientUtils implements ClientUtilsInterface {
             try {
 
                 //PostMessage RMI to other server
-                Response r = client.target(uri).path("/postMessageFromDomain/" + user)
+                Response r = client.target(uri).path("postMessageFromDomain").path(user)
                         .queryParam("pwd", (Object) null)
                         .request().accept(MediaType.APPLICATION_JSON)
                         .post(Entity.entity(message, MediaType.APPLICATION_JSON));
@@ -113,7 +113,7 @@ public class ClientUtils implements ClientUtilsInterface {
         Response r;
         while (!success && retries < MAX_RETRIES) {
             try {
-                r = client.target(uri).path("/otherDomain/" + user)
+                r = client.target(uri).path("otherDomain").path(user)
                         .request().accept(MediaType.APPLICATION_JSON)
                         .post(Entity.entity(m, MediaType.APPLICATION_JSON));
                 if (r.getStatus() == Response.Status.NO_CONTENT.getStatusCode())
@@ -143,7 +143,8 @@ public class ClientUtils implements ClientUtilsInterface {
 
         while (!success && retries < MAX_RETRIES) {
             try {
-                client.target(uri).path("/deleteUserInbox/" + user).request().delete();
+                client.target(uri).path("deleteUserInbox").path(user)
+                	  .request().delete();
 
                 success = true;
             } catch (ProcessingException pe) {
@@ -170,7 +171,8 @@ public class ClientUtils implements ClientUtilsInterface {
         Response r;
         while (!success && retries < MAX_RETRIES) {
             try {
-                r = client.target(uri).path("/userExists/" + user.split("@")[0])
+                r = client.target(uri)
+                		.path("userExists").path(user.split("@")[0])
                         .request()
                         .accept(MediaType.APPLICATION_JSON_TYPE).get();
 
