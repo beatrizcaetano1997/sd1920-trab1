@@ -39,7 +39,6 @@ public class MessageResource implements MessageServiceSoap {
     @Override
     public long postMessage(String pwd, Message msg) throws MessagesException
     {
-    	Log.info(" TESTE ");
         //Check if message is valid, if not return HTTP CONFLICT (409)
         if (msg.getSender() == null || msg.getDestination() == null || msg.getDestination().size() == 0) {
         	throw new MessagesException(Status.CONFLICT);
@@ -56,8 +55,6 @@ public class MessageResource implements MessageServiceSoap {
 		{
 			throw new MessagesException(e.getMessage());
 		}
-		
-		Log.info(" TESTE2 ");
 
         //Check if a user is valid
         if (userExists == null) {

@@ -159,7 +159,7 @@ public class Discovery
     				  uri = URI.create(uri.toString() + "/" + serviceType);
     		break;
     	case WS_SOAP: uri = soapURIS.get(domain);
-    				  uri = URI.create(uri.toString() + "/" + serviceType);
+    				  uri = URI.create(uri.toString());
     		break;
     	}
     	Log.info("DISCOVERY URI " + uri);

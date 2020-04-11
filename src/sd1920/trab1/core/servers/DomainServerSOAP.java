@@ -2,17 +2,22 @@ package sd1920.trab1.core.servers;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.MalformedURLException;
 import java.net.URI;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.logging.Logger;
 
 import javax.xml.ws.Endpoint;
+import javax.xml.ws.WebServiceException;
 
 import com.sun.net.httpserver.HttpServer;
 
+import sd1920.trab1.core.clt.soap.ClientUtilsUsers;
 import sd1920.trab1.core.resources.soap.*;
+import sd1920.trab1.api.User;
 import sd1920.trab1.api.soap.MessageServiceSoap;
+import sd1920.trab1.api.soap.MessagesException;
 import sd1920.trab1.api.soap.UserServiceSoap;
 import sd1920.trab1.core.servers.discovery.Discovery;
 
