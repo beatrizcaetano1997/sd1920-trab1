@@ -89,7 +89,7 @@ public class ClientUtilsUsers implements IClientUtilsUsers
         while (!success && retries < MAX_RETRIES) {
             try
             {
-                receivedId = users.checkIfUserExists(user.split("@")[0]);
+                receivedId = users.checkIfUserExists(user);
                 success = true;
             }
             catch (MessagesException ex)

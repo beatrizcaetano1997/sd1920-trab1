@@ -115,7 +115,7 @@ public class MessageResource implements MessageServiceSoap {
             	String chk = null;
 				try
 				{
-					chk = new ClientUtilsUsers(getURI(domain, UserServiceSoap.NAME).toString()).userExists(recipient);
+					chk = new ClientUtilsUsers(getURI(domain, UserServiceSoap.NAME).toString()).userExists(recipient.split("@")[0]);
 				}
 				catch (MalformedURLException | WebServiceException e)
 				{
@@ -329,7 +329,7 @@ public class MessageResource implements MessageServiceSoap {
     	String chk = null;
 		try
 		{
-			chk = new ClientUtilsUsers(getURI(domain, UserServiceSoap.NAME).toString()).userExists(user);
+			chk = new ClientUtilsUsers(getURI(domain, UserServiceSoap.NAME).toString()).userExists(user.split("@")[0]);
 			System.out.println(getURI(domain, UserServiceSoap.NAME).toString());
 			System.out.println(chk);
 		}

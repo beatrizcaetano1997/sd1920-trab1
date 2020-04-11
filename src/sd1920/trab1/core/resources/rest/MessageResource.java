@@ -91,7 +91,7 @@ public class MessageResource implements MessageService {
 
             } else {
 
-                String chk = clientUtils.userExists(recipient, getURI(domain, "users"));
+                String chk = clientUtils.userExists(recipient.split("@")[0], getURI(domain, "users"));
                 if (chk != null) {
 
                     Set<Long> msgSet;
@@ -250,7 +250,7 @@ public class MessageResource implements MessageService {
 
     @Override
     public long postOtherMessageDomain(Message m, String user) {
-        String chk = clientUtils.userExists(user, getURI(domain, "users"));
+        String chk = clientUtils.userExists(user.split("@")[0], getURI(domain, "users"));
         if (chk != null) {
             long newID = m.getId();
 

@@ -172,7 +172,7 @@ public class ClientUtils implements ClientUtilsInterface {
         while (!success && retries < MAX_RETRIES) {
             try {
                 r = client.target(uri)
-                		.path("userExists").path(user.split("@")[0])
+                		.path("userExists").path(user)
                         .request()
                         .accept(MediaType.APPLICATION_JSON_TYPE).get();
 
