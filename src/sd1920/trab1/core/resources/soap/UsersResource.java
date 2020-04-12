@@ -159,7 +159,7 @@ public class UsersResource implements UserServiceSoap {
 
     private URI getURI(String domain, String serviceType)
     {
-    	return discovery.getURI(domain, serviceType, discovery.WS_SOAP);
+    	return discovery.getURI(domain, serviceType);
     }
 
 

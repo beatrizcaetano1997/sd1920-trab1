@@ -417,12 +417,6 @@ public class MessageResource implements MessageServiceSoap {
         }
     }
 
-    //CHANGE TO METHOD IN DISCOVERY
-    public URI getURI(String domain, String serviceType)
-    {
-    	return discovery.getURI(domain, serviceType, discovery.WS_SOAP);
-    }
-
     private Message getMessage(Message msg) {
         Message toSend = new Message(msg.getSender(), msg.getDestination(), msg.getSubject(), msg.getContents());
         toSend.setCreationTime(msg.getCreationTime());
@@ -439,5 +433,10 @@ public class MessageResource implements MessageServiceSoap {
                 }
             }
         }
+    }
+    
+    private URI getURI(String domain, String serviceType)
+    {
+    	return discovery.getURI(domain, serviceType);
     }
 }

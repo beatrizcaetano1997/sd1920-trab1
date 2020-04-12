@@ -150,19 +150,21 @@ public class Discovery
         return discoveredUris.toArray(new URI[discoveredUris.size()]);
     }
 
-    public URI getURI(String domain, String serviceType, String ws)
+    public URI getURI(String domain, String serviceType)
     {
     	URI uri = null;
-    	switch(ws)
-    	{
-    	case WS_REST: uri = restURIS.get(domain);
-    				  uri = URI.create(uri.toString() + "/" + serviceType);
-    		break;
-    	case WS_SOAP: uri = soapURIS.get(domain);
-    				  uri = URI.create(uri.toString());
-    		break;
-    	}
-    	Log.info("DISCOVERY URI " + uri);
+    	//CHECK IF HE FIND THE DOMAIN
+    	//if (this.knownUrisOf(domain).length <= 1)
+    	//{
+    		uri = this.knownUrisOf(domain)[0];
+    		String strURI = uri.toString();
+    		if (strURI.contains(WS_REST))
+    			uri = URI.create(strURI + "/" + serviceType);
+    		else if (strURI.contains(WS_SOAP))
+    			uri = URI.create(strURI);
+    		
+    		System.out.println(uri);
+    	//}
     	return uri;
     }
 

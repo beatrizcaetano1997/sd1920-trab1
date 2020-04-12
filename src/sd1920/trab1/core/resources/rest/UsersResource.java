@@ -11,24 +11,24 @@ import javax.ws.rs.core.Response.Status;
 import java.net.URI;
 import java.util.HashMap;
 
-public class UsersResource implements UserService {
+public class UsersResource implements UserService
+{
 
     private final HashMap<String, User> users = new HashMap<>();
 
     private String domain;
 
     private Discovery discovery;
-    private ClientUtils clientUtils;
 
     public UsersResource(Discovery discovery, String domain)
     {
         this.domain = domain;
         this.discovery = discovery;
-        clientUtils = new ClientUtils();
     }
 
     @Override
-    public String postUser(User user) {
+    public String postUser(User user)
+    {
         User chk;
 
         synchronized (this) {
@@ -130,7 +130,7 @@ public class UsersResource implements UserService {
         }
 
         String messageService = MessageService.PATH.substring(1);
-        clientUtils.deleteUserInbox(getURI(domain, messageService), user);
+        new ClientUtils(getURI(domain, messageService)).deleteUserInbox(user);
 
         synchronized (this) {
             uncheck = users.remove(user);
@@ -139,11 +139,9 @@ public class UsersResource implements UserService {
 
     }
 
-    private URI getURI(String domain, String serviceType)
+    private String getURI(String domain, String serviceType)
     {
-    	return discovery.getURI(domain, serviceType, discovery.WS_REST);
+    	return discovery.getURI(domain, serviceType).toString();
     }
-
-
 
 }

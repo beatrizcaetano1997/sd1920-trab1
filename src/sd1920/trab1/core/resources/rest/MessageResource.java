@@ -26,14 +26,12 @@ public class MessageResource implements MessageService {
     private static Logger Log = Logger.getLogger(MessageResource.class.getName());
     private Discovery discovery;
     private String domain;
-    public ClientUtils clientUtils;
 
-
-    public MessageResource(Discovery discovery, String domain) {
+    public MessageResource(Discovery discovery, String domain)
+    {
         this.randomNumberGenerator = new Random(System.currentTimeMillis());
         this.discovery = discovery;
         this.domain = domain;
-        clientUtils = new ClientUtils();
     }
 
     @Override
@@ -45,7 +43,7 @@ public class MessageResource implements MessageService {
         }
 
 
-        User userExists = clientUtils.checkUser(getURI(domain, "users"), msg.getSender().split("@")[0], pwd);
+        User userExists = new ClientUtils(getURI(domain, "users")).checkUser(msg.getSender().split("@")[0], pwd);
 
         //Check if a user is valid
         if (userExists == null) {
@@ -80,7 +78,8 @@ public class MessageResource implements MessageService {
                 long midFromOtherDomain;
 
                 Message toSend = getMessage(msg);
-                midFromOtherDomain = clientUtils.postOtherDomainMessage(getURI(recipient.split("@")[1], "messages"), toSend, recipient);
+                midFromOtherDomain = new ClientUtils(getURI(recipient.split("@")[1], "messages"))
+                						 .postOtherDomainMessage(toSend, recipient);
 
                 //verificação se a mensagem foi realmente enviada
                 if (midFromOtherDomain == -1) {
@@ -91,9 +90,11 @@ public class MessageResource implements MessageService {
 
             } else {
 
-                String chk = clientUtils.userExists(recipient.split("@")[0], getURI(domain, "users"));
-                if (chk != null) {
-
+                String chk = new ClientUtils(getURI(domain, "users"))
+                				 .userExists(recipient.split("@")[0]);
+                
+                if (chk != null)
+                {
                     Set<Long> msgSet;
                     synchronized (userInboxs) {
                         msgSet = userInboxs.get(recipient);
@@ -122,10 +123,11 @@ public class MessageResource implements MessageService {
 
 
     @Override
-    public Message getMessage(String user, long mid, String pwd) {
+    public Message getMessage(String user, long mid, String pwd)
+    {
         Log.info("Received request for message with id: " + mid + ".");
 
-        User userExists = clientUtils.checkUser(getURI(domain, "users"), user, pwd);
+        User userExists = new ClientUtils(getURI(domain, "users")).checkUser(user, pwd);
 
         //Check if a user is valid
         if (userExists == null) {
@@ -160,7 +162,7 @@ public class MessageResource implements MessageService {
 
         List<Long> messages = new LinkedList<>();
 
-        User userExists = clientUtils.checkUser(getURI(domain, "users"), user, pwd);
+        User userExists = new ClientUtils(getURI(domain, "users")).checkUser(user, pwd);
 
         if (userExists == null) {
             throw new WebApplicationException((Status.FORBIDDEN));
@@ -186,9 +188,9 @@ public class MessageResource implements MessageService {
     }
 
     @Override
-    public void removeFromUserInbox(String user, long mid, String pwd) {
-
-        User userExists = clientUtils.checkUser(getURI(domain, "users"), user, pwd);
+    public void removeFromUserInbox(String user, long mid, String pwd)
+    {
+        User userExists = new ClientUtils(getURI(domain, "users")).checkUser(user, pwd);
 
         //Check if a user is valid
         if (userExists == null) {
@@ -214,7 +216,7 @@ public class MessageResource implements MessageService {
     public void deleteMessage(String user, long mid, String pwd) {
 
 
-        User userExists = clientUtils.checkUser(getURI(domain, "users"), user, pwd);
+        User userExists = new ClientUtils(getURI(domain, "users")).checkUser(user, pwd);
 
 
         //Check if a user is valid
@@ -237,10 +239,14 @@ public class MessageResource implements MessageService {
 
         Set<String> msgDestination = msg.getDestination();
 
-        for (String user_dest : msgDestination) {
-            if (!user_dest.split("@")[1].equals(domain)) {
-                clientUtils.deleteOtherDomainMessage(getURI(user_dest.split("@")[1], "messages"), user_dest, msg);
-            } else {
+        for (String user_dest : msgDestination)
+        {
+            if (!user_dest.split("@")[1].equals(domain))
+            {
+                new ClientUtils(getURI(user_dest.split("@")[1], "messages"))
+                	.deleteOtherDomainMessage(user_dest, msg);
+            }
+            else {
                 synchronized (userInboxs) {
                     userInboxs.get(user_dest).remove(mid);
                 }
@@ -249,8 +255,9 @@ public class MessageResource implements MessageService {
     }
 
     @Override
-    public long postOtherMessageDomain(Message m, String user) {
-        String chk = clientUtils.userExists(user.split("@")[0], getURI(domain, "users"));
+    public long postOtherMessageDomain(Message m, String user)
+    {
+        String chk = new ClientUtils(getURI(domain, "users")).userExists(user.split("@")[0]);
         if (chk != null) {
             long newID = m.getId();
 
@@ -332,16 +339,16 @@ public class MessageResource implements MessageService {
         }
     }
 
-    public URI getURI(String domain, String serviceType)
-    {
-    	return discovery.getURI(domain, serviceType, discovery.WS_REST);
-    }
-
     private Message getMessage(Message msg) {
         Message toSend = new Message(msg.getSender(), msg.getDestination(), msg.getSubject(), msg.getContents());
         toSend.setCreationTime(msg.getCreationTime());
         toSend.setId(msg.getId());
         return toSend;
+    }
+    
+    private String getURI(String domain, String serviceType)
+    {
+    	return discovery.getURI(domain, serviceType).toString();
     }
 
 }
