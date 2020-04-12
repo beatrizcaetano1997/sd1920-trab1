@@ -7,14 +7,16 @@ import java.net.URI;
 
 public interface ClientUtilsInterface {
     //In every method to verify the user
-    User checkUser(URI uri, String user, String pwd);
+    User checkUser(String user, String pwd);
 
     //When posting a message in other domain server ex -> postMessage
-    Long postOtherDomainMessage(URI uri, Message message, String user);
+    Long postOtherDomainMessage(Message message, String user);
 
     //Used to delete a given message in other domain ex -> DeleteMessage
-    void deleteOtherDomainMessage(URI uri, String user, Message m);
+    void deleteOtherDomainMessage(String user, Message m);
 
     //Used to delete a user inbox ex -> DeleteUser
-    void deleteUserInbox(URI uri, String user);
+    void deleteUserInbox(String user);
+    
+    String userExists(String user);
 }

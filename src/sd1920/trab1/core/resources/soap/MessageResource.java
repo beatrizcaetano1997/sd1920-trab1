@@ -12,7 +12,9 @@ import javax.ws.rs.core.Response.Status;
 import javax.xml.ws.WebServiceException;
 
 import sd1920.trab1.api.*;
+import sd1920.trab1.api.rest.MessageService;
 import sd1920.trab1.api.soap.*;
+import sd1920.trab1.core.clt.rest.ClientUtils;
 import sd1920.trab1.core.clt.soap.*;
 import sd1920.trab1.core.servers.discovery.Discovery;
 
@@ -48,7 +50,7 @@ public class MessageResource implements MessageServiceSoap {
         User userExists = null;
 		try
 		{
-			userExists = new ClientUtilsUsers(getURI(domain, UserServiceSoap.NAME).toString())
+			userExists = new ClientUtilsUsers(getURI(domain, UserServiceSoap.NAME))
 												   .checkUser(msg.getSender().split("@")[0], pwd);
 		}
 		catch (MalformedURLException | WebServiceException e)
@@ -89,18 +91,27 @@ public class MessageResource implements MessageServiceSoap {
                 //Makes sure that the destination is only 1 and not all, to avoid server loops
 
                 long midFromOtherDomain = -1;
-
                 Message toSend = getMessage(msg);
                 
-                try
+                String uri = getURI(recipient.split("@")[1], MessageServiceSoap.NAME);
+                if (uri.contains(discovery.WS_REST))
                 {
-					midFromOtherDomain = new ClientUtilsMessages(getURI(recipient.split("@")[1], MessageServiceSoap.NAME).toString())
-											.postOtherDomainMessage(toSend, recipient);
-				}
-                catch (MalformedURLException | WebServiceException e)
+                	midFromOtherDomain = new ClientUtils(uri)
+       					 .postOtherDomainMessage(toSend, recipient);
+                }
+                else if (uri.contains(discovery.WS_SOAP))
                 {
-					throw new MessagesException(e.getMessage());
-				}
+                	try
+                    {
+    					midFromOtherDomain = new ClientUtilsMessages(uri)
+    											.postOtherDomainMessage(toSend, recipient);
+    				}
+                    catch (MalformedURLException | WebServiceException e)
+                    {
+    					throw new MessagesException(e.getMessage());
+    				}
+                }
+                
 
                 //verificação se a mensagem foi realmente enviada
                 if (midFromOtherDomain == -1)
@@ -115,7 +126,7 @@ public class MessageResource implements MessageServiceSoap {
             	String chk = null;
 				try
 				{
-					chk = new ClientUtilsUsers(getURI(domain, UserServiceSoap.NAME).toString()).userExists(recipient);
+					chk = new ClientUtilsUsers(getURI(domain, UserServiceSoap.NAME)).userExists(recipient.split("@")[0]);
 				}
 				catch (MalformedURLException | WebServiceException e)
 				{
@@ -159,7 +170,7 @@ public class MessageResource implements MessageServiceSoap {
         User userExists = null;
         try
 		{
-			userExists = new ClientUtilsUsers(getURI(domain, UserServiceSoap.NAME).toString())
+			userExists = new ClientUtilsUsers(getURI(domain, UserServiceSoap.NAME))
 							 .checkUser(user, pwd);
 		}
 		catch (MalformedURLException | WebServiceException e)
@@ -168,7 +179,8 @@ public class MessageResource implements MessageServiceSoap {
 		}
 
         //Check if a user is valid
-        if (userExists == null) {
+        if (userExists == null)
+        {
         	throw new MessagesException(Status.FORBIDDEN);
         }
 
@@ -204,7 +216,7 @@ public class MessageResource implements MessageServiceSoap {
         User userExists = null;
         try
 		{
-			userExists = new ClientUtilsUsers(getURI(domain, UserServiceSoap.NAME).toString())
+			userExists = new ClientUtilsUsers(getURI(domain, UserServiceSoap.NAME))
 							 .checkUser(user, pwd);
 		}
 		catch (MalformedURLException | WebServiceException e)
@@ -241,7 +253,7 @@ public class MessageResource implements MessageServiceSoap {
     	User userExists = null;
         try
 		{
-			userExists = new ClientUtilsUsers(getURI(domain, UserServiceSoap.NAME).toString())
+			userExists = new ClientUtilsUsers(getURI(domain, UserServiceSoap.NAME))
 							 .checkUser(user, pwd);
 		}
 		catch (MalformedURLException | WebServiceException e)
@@ -276,7 +288,7 @@ public class MessageResource implements MessageServiceSoap {
     	User userExists = null;
         try
 		{
-			userExists = new ClientUtilsUsers(getURI(domain, UserServiceSoap.NAME).toString())
+			userExists = new ClientUtilsUsers(getURI(domain, UserServiceSoap.NAME))
 							 .checkUser(user, pwd);
 		}
 		catch (MalformedURLException | WebServiceException e)
@@ -305,17 +317,26 @@ public class MessageResource implements MessageServiceSoap {
         Set<String> msgDestination = msg.getDestination();
 
         for (String user_dest : msgDestination) {
-            if (!user_dest.split("@")[1].equals(domain)) {
-                boolean success = false;
-                try
-				{
-					success = new ClientUtilsMessages(getURI(user_dest.split("@")[1], MessageServiceSoap.NAME).toString())
-										  .deleteOtherDomainMessage(user_dest, msg);
-				}
-				catch (MalformedURLException | WebServiceException e) {
-					throw new MessagesException(e.getMessage());
-				}
-            } else {
+            if (!user_dest.split("@")[1].equals(domain))
+            {
+                String uri = getURI(user_dest.split("@")[1], MessageServiceSoap.NAME);
+                	
+                if (uri.contains(discovery.WS_REST))
+                   	new ClientUtils(uri).deleteOtherDomainMessage(user_dest, msg);
+                else if (uri.contains(discovery.WS_SOAP))
+                {
+                   	try
+                  	{
+    					new ClientUtilsMessages(uri).deleteOtherDomainMessage(user_dest, msg);
+    				}
+                   	catch (MalformedURLException | WebServiceException e)
+                   	{
+    					throw new WebApplicationException(e.getMessage());
+    				}
+                }
+            }
+            else
+            {
                 synchronized (userInboxs) {
                     userInboxs.get(user_dest).remove(mid);
                 }
@@ -329,9 +350,7 @@ public class MessageResource implements MessageServiceSoap {
     	String chk = null;
 		try
 		{
-			chk = new ClientUtilsUsers(getURI(domain, UserServiceSoap.NAME).toString()).userExists(user);
-			System.out.println(getURI(domain, UserServiceSoap.NAME).toString());
-			System.out.println(chk);
+			chk = new ClientUtilsUsers(getURI(domain, UserServiceSoap.NAME)).userExists(user.split("@")[0]);
 		}
 		catch (MalformedURLException | WebServiceException e)
 		{
@@ -417,12 +436,6 @@ public class MessageResource implements MessageServiceSoap {
         }
     }
 
-    //CHANGE TO METHOD IN DISCOVERY
-    public URI getURI(String domain, String serviceType)
-    {
-    	return discovery.getURI(domain, serviceType, discovery.WS_SOAP);
-    }
-
     private Message getMessage(Message msg) {
         Message toSend = new Message(msg.getSender(), msg.getDestination(), msg.getSubject(), msg.getContents());
         toSend.setCreationTime(msg.getCreationTime());
@@ -439,5 +452,10 @@ public class MessageResource implements MessageServiceSoap {
                 }
             }
         }
+    }
+    
+    private String getURI(String domain, String serviceType)
+    {
+    	return discovery.getURI(domain, serviceType).toString();
     }
 }

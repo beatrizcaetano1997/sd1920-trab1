@@ -1,5 +1,6 @@
 package sd1920.trab1.core.resources.rest;
 
+import java.net.MalformedURLException;
 import java.net.URI;
 import java.util.*;
 import java.util.logging.Logger;
@@ -8,11 +9,14 @@ import javax.inject.Singleton;
 import javax.ws.rs.*;
 
 import javax.ws.rs.core.Response.Status;
+import javax.xml.ws.WebServiceException;
 
 import sd1920.trab1.api.Message;
 import sd1920.trab1.api.User;
 import sd1920.trab1.api.rest.MessageService;
+import sd1920.trab1.api.rest.UserService;
 import sd1920.trab1.core.clt.rest.ClientUtils;
+import sd1920.trab1.core.clt.soap.ClientUtilsMessages;
 import sd1920.trab1.core.servers.discovery.Discovery;
 
 @Singleton
@@ -26,18 +30,17 @@ public class MessageResource implements MessageService {
     private static Logger Log = Logger.getLogger(MessageResource.class.getName());
     private Discovery discovery;
     private String domain;
-    public ClientUtils clientUtils;
 
-
-    public MessageResource(Discovery discovery, String domain) {
+    public MessageResource(Discovery discovery, String domain)
+    {
         this.randomNumberGenerator = new Random(System.currentTimeMillis());
         this.discovery = discovery;
         this.domain = domain;
-        clientUtils = new ClientUtils();
     }
 
     @Override
-    public long postMessage(String pwd, Message msg) {
+    public long postMessage(String pwd, Message msg) throws WebApplicationException
+    {
 
         //Check if message is valid, if not return HTTP CONFLICT (409)
         if (msg.getSender() == null || msg.getDestination() == null || msg.getDestination().size() == 0) {
@@ -45,7 +48,8 @@ public class MessageResource implements MessageService {
         }
 
 
-        User userExists = clientUtils.checkUser(getURI(domain, "users"), msg.getSender().split("@")[0], pwd);
+        User userExists = new ClientUtils(getURI(domain, UserService.PATH.substring(1)))
+        					 .checkUser(msg.getSender().split("@")[0], pwd);
 
         //Check if a user is valid
         if (userExists == null) {
@@ -74,14 +78,26 @@ public class MessageResource implements MessageService {
         //Add the message (identifier) to the inbox of each recipient
         for (String recipient : msg.getDestination()) {
             String userDomain = recipient.split("@")[1];
-            if (!userDomain.equals(domain)) {
+            if (!userDomain.equals(domain))
+            {
                 //Makes sure that the destination is only 1 and not all, to avoid server loops
-
-                long midFromOtherDomain;
-
+                long midFromOtherDomain = -1;
                 Message toSend = getMessage(msg);
-                midFromOtherDomain = clientUtils.postOtherDomainMessage(getURI(recipient.split("@")[1], "messages"), toSend, recipient);
-
+                
+                String uri = getURI(recipient.split("@")[1], MessageService.PATH.substring(1));
+                
+                if (uri.contains(discovery.WS_REST))
+                	midFromOtherDomain = new ClientUtils(uri).postOtherDomainMessage(toSend, recipient);
+                else if (uri.contains(discovery.WS_SOAP))
+                {
+                	try {
+						midFromOtherDomain = new ClientUtilsMessages(uri).postOtherDomainMessage(toSend, recipient);
+					} catch (MalformedURLException | WebServiceException e) {
+						throw new WebApplicationException(e.getMessage());
+					}
+                }
+                	
+                	
                 //verificação se a mensagem foi realmente enviada
                 if (midFromOtherDomain == -1) {
 
@@ -91,9 +107,11 @@ public class MessageResource implements MessageService {
 
             } else {
 
-                String chk = clientUtils.userExists(recipient, getURI(domain, "users"));
-                if (chk != null) {
-
+                String chk = new ClientUtils(getURI(domain, UserService.PATH.substring(1)))
+                				 .userExists(recipient.split("@")[0]);
+                
+                if (chk != null)
+                {
                     Set<Long> msgSet;
                     synchronized (userInboxs) {
                         msgSet = userInboxs.get(recipient);
@@ -122,10 +140,11 @@ public class MessageResource implements MessageService {
 
 
     @Override
-    public Message getMessage(String user, long mid, String pwd) {
+    public Message getMessage(String user, long mid, String pwd)
+    {
         Log.info("Received request for message with id: " + mid + ".");
 
-        User userExists = clientUtils.checkUser(getURI(domain, "users"), user, pwd);
+        User userExists = new ClientUtils(getURI(domain, UserService.PATH.substring(1))).checkUser(user, pwd);
 
         //Check if a user is valid
         if (userExists == null) {
@@ -160,7 +179,7 @@ public class MessageResource implements MessageService {
 
         List<Long> messages = new LinkedList<>();
 
-        User userExists = clientUtils.checkUser(getURI(domain, "users"), user, pwd);
+        User userExists = new ClientUtils(getURI(domain, UserService.PATH.substring(1))).checkUser(user, pwd);
 
         if (userExists == null) {
             throw new WebApplicationException((Status.FORBIDDEN));
@@ -186,9 +205,9 @@ public class MessageResource implements MessageService {
     }
 
     @Override
-    public void removeFromUserInbox(String user, long mid, String pwd) {
-
-        User userExists = clientUtils.checkUser(getURI(domain, "users"), user, pwd);
+    public void removeFromUserInbox(String user, long mid, String pwd)
+    {
+        User userExists = new ClientUtils(getURI(domain, UserService.PATH.substring(1))).checkUser(user, pwd);
 
         //Check if a user is valid
         if (userExists == null) {
@@ -211,10 +230,9 @@ public class MessageResource implements MessageService {
     }
 
     @Override
-    public void deleteMessage(String user, long mid, String pwd) {
-
-
-        User userExists = clientUtils.checkUser(getURI(domain, "users"), user, pwd);
+    public void deleteMessage(String user, long mid, String pwd)
+    {
+        User userExists = new ClientUtils(getURI(domain, UserService.PATH.substring(1))).checkUser(user, pwd);
 
 
         //Check if a user is valid
@@ -237,11 +255,30 @@ public class MessageResource implements MessageService {
 
         Set<String> msgDestination = msg.getDestination();
 
-        for (String user_dest : msgDestination) {
-            if (!user_dest.split("@")[1].equals(domain)) {
-                clientUtils.deleteOtherDomainMessage(getURI(user_dest.split("@")[1], "messages"), user_dest, msg);
-            } else {
-                synchronized (userInboxs) {
+        for (String user_dest : msgDestination)
+        {
+            if (!user_dest.split("@")[1].equals(domain))
+            {
+            	String uri = getURI(user_dest.split("@")[1], MessageService.PATH.substring(1));
+            	
+                if (uri.contains(discovery.WS_REST))
+                	new ClientUtils(uri).deleteOtherDomainMessage(user_dest, msg);
+                else if (uri.contains(discovery.WS_SOAP))
+                {
+                	try
+                	{
+						new ClientUtilsMessages(uri).deleteOtherDomainMessage(user_dest, msg);
+					}
+                	catch (MalformedURLException | WebServiceException e)
+                	{
+						throw new WebApplicationException(e.getMessage());
+					}
+                }
+            }
+            else
+            {
+                synchronized (userInboxs)
+                {
                     userInboxs.get(user_dest).remove(mid);
                 }
             }
@@ -249,9 +286,13 @@ public class MessageResource implements MessageService {
     }
 
     @Override
-    public long postOtherMessageDomain(Message m, String user) {
-        String chk = clientUtils.userExists(user, getURI(domain, "users"));
-        if (chk != null) {
+    public long postOtherMessageDomain(Message m, String user)
+    {
+        String chk = new ClientUtils(getURI(domain, UserService.PATH.substring(1)))
+        				 .userExists(user.split("@")[0]);
+        
+        if (chk != null)
+        {
             long newID = m.getId();
 
             Message tocheck;
@@ -332,16 +373,16 @@ public class MessageResource implements MessageService {
         }
     }
 
-    public URI getURI(String domain, String serviceType)
-    {
-    	return discovery.getURI(domain, serviceType, discovery.WS_REST);
-    }
-
     private Message getMessage(Message msg) {
         Message toSend = new Message(msg.getSender(), msg.getDestination(), msg.getSubject(), msg.getContents());
         toSend.setCreationTime(msg.getCreationTime());
         toSend.setId(msg.getId());
         return toSend;
+    }
+    
+    private String getURI(String domain, String serviceType)
+    {
+    	return discovery.getURI(domain, serviceType).toString();
     }
 
 }

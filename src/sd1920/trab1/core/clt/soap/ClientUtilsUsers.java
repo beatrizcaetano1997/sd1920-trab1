@@ -24,8 +24,8 @@ import sd1920.trab1.core.clt.rest.ClientUtilsInterface;
 
 public class ClientUtilsUsers implements IClientUtilsUsers
 {
-	private static final int CONNECTION_TIMEOUT = 10000;
-    private static final int REPLY_TIMOUT = 600;
+	private static final int CONNECTION_TIMEOUT = 15000;
+    private static final int REPLY_TIMOUT = 1000;
     private static final int MAX_RETRIES = 3;
     private static final int RETRY_PERIOD = 1000;
     
@@ -89,7 +89,7 @@ public class ClientUtilsUsers implements IClientUtilsUsers
         while (!success && retries < MAX_RETRIES) {
             try
             {
-                receivedId = users.checkIfUserExists(user.split("@")[0]);
+                receivedId = users.checkIfUserExists(user);
                 success = true;
             }
             catch (MessagesException ex)

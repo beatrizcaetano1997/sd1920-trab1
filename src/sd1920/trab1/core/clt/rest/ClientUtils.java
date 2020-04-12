@@ -9,32 +9,36 @@ import javax.ws.rs.ProcessingException;
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.client.Entity;
+import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.GenericType;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.net.URI;
 
-public class ClientUtils implements ClientUtilsInterface {
+public class ClientUtils implements ClientUtilsInterface
+{
     private static final int CONNECTION_TIMEOUT = 10000;
     private static final int REPLY_TIMOUT = 600;
     private static final int MAX_RETRIES = 3;
     private static final int RETRY_PERIOD = 1000;
 
-    Client client;
-    ClientConfig config;
+    private final Client client;
+    private final ClientConfig config;
+    private final WebTarget target;
 
-
-    public ClientUtils() {
+    public ClientUtils(String uri)
+    {
         config = new ClientConfig();
         config.property(ClientProperties.CONNECT_TIMEOUT, CONNECTION_TIMEOUT);
         config.property(ClientProperties.READ_TIMEOUT, REPLY_TIMOUT);
         client = ClientBuilder.newClient(config);
+        target = client.target(uri);  
     }
 
     //In every method to verify the user
     @Override
-    public User checkUser(URI uri, String user, String pwd) {
-
+    public User checkUser(String user, String pwd)
+    {
         boolean success = false;
         short retries = 0;
         User receivedUser = null;
@@ -42,9 +46,9 @@ public class ClientUtils implements ClientUtilsInterface {
         Response r;
         while (!success && retries < MAX_RETRIES) {
             try {
-                r = client.target(uri).path(user).queryParam("pwd", pwd)
-                        .request(MediaType.APPLICATION_JSON)
-                        .accept(MediaType.APPLICATION_JSON_TYPE).get();
+                r = target.path(user).queryParam("pwd", pwd)
+                          .request(MediaType.APPLICATION_JSON)
+                          .accept(MediaType.APPLICATION_JSON_TYPE).get();
 
                 if (r.getStatus() == Response.Status.OK.getStatusCode()) {
                     success = true;
@@ -73,18 +77,18 @@ public class ClientUtils implements ClientUtilsInterface {
 
     //When posting a message in other domain server ex -> postMessage
     @Override
-    public Long postOtherDomainMessage(URI uri, Message message, String user) {
-
+    public Long postOtherDomainMessage(Message message, String user)
+    {
         short retries = 0;
         while (retries < MAX_RETRIES) {
             try {
 
                 //PostMessage RMI to other server
-                Response r = client.target(uri).path("/postMessageFromDomain/" + user)
-                        .queryParam("pwd", (Object) null)
-                        .request().accept(MediaType.APPLICATION_JSON)
-                        .post(Entity.entity(message, MediaType.APPLICATION_JSON));
-
+                Response r = target.path("postMessageFromDomain").path(user)
+                        		   .queryParam("pwd", (Object) null)
+                        		   .request().accept(MediaType.APPLICATION_JSON)
+                        		   .post(Entity.entity(message, MediaType.APPLICATION_JSON));
+                
                 if (r.getStatus() == Response.Status.OK.getStatusCode()) {
                     return r.readEntity(new GenericType<Long>() {
                     });
@@ -106,16 +110,17 @@ public class ClientUtils implements ClientUtilsInterface {
 
     //Used to delete a given message in other domain ex -> DeleteMessage
     @Override
-    public void deleteOtherDomainMessage(URI uri, String user, Message m) {
+    public void deleteOtherDomainMessage(String user, Message m)
+    {
         boolean success = false;
         short retries = 0;
 
         Response r;
         while (!success && retries < MAX_RETRIES) {
             try {
-                r = client.target(uri).path("/otherDomain/" + user)
-                        .request().accept(MediaType.APPLICATION_JSON)
-                        .post(Entity.entity(m, MediaType.APPLICATION_JSON));
+                r = target.path("otherDomain").path(user)
+                          .request().accept(MediaType.APPLICATION_JSON)
+                          .post(Entity.entity(m, MediaType.APPLICATION_JSON));
                 if (r.getStatus() == Response.Status.NO_CONTENT.getStatusCode())
                     success = true;
 
@@ -135,7 +140,8 @@ public class ClientUtils implements ClientUtilsInterface {
 
     //Used to delete a user inbox ex -> DeleteUser
     @Override
-    public void deleteUserInbox(URI uri, String user) {
+    public void deleteUserInbox(String user)
+    {
 
         boolean success = false;
         short retries = 0;
@@ -143,7 +149,8 @@ public class ClientUtils implements ClientUtilsInterface {
 
         while (!success && retries < MAX_RETRIES) {
             try {
-                client.target(uri).path("/deleteUserInbox/" + user).request().delete();
+                target.path("deleteUserInbox").path(user)
+                	  .request().delete();
 
                 success = true;
             } catch (ProcessingException pe) {
@@ -160,7 +167,7 @@ public class ClientUtils implements ClientUtilsInterface {
 
     }
 
-    public String userExists(String user, URI uri) {
+    public String userExists(String user) {
 
 
         boolean success = false;
@@ -170,9 +177,9 @@ public class ClientUtils implements ClientUtilsInterface {
         Response r;
         while (!success && retries < MAX_RETRIES) {
             try {
-                r = client.target(uri).path("/userExists/" + user.split("@")[0])
-                        .request()
-                        .accept(MediaType.APPLICATION_JSON_TYPE).get();
+                r = target.path("userExists").path(user)
+                          .request()
+                          .accept(MediaType.APPLICATION_JSON_TYPE).get();
 
                 if (r.getStatus() == Response.Status.OK.getStatusCode()) {
                     success = true;
