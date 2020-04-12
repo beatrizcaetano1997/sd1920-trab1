@@ -153,18 +153,12 @@ public class Discovery
     public URI getURI(String domain, String serviceType)
     {
     	URI uri = null;
-    	//CHECK IF HE FIND THE DOMAIN
-    	//if (this.knownUrisOf(domain).length <= 1)
-    	//{
-    		uri = this.knownUrisOf(domain)[0];
-    		String strURI = uri.toString();
-    		if (strURI.contains(WS_REST))
-    			uri = URI.create(strURI + "/" + serviceType);
-    		else if (strURI.contains(WS_SOAP))
-    			uri = URI.create(strURI);
-    		
-    		System.out.println(uri);
-    	//}
+    	uri = this.knownUrisOf(domain)[0];
+    	String strURI = uri.toString();
+    	if (strURI.contains(WS_REST))
+    		uri = URI.create(strURI + "/" + serviceType);
+    	else if (strURI.contains(WS_SOAP))
+    		uri = URI.create(strURI);
     	return uri;
     }
 

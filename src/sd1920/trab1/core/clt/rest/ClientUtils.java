@@ -39,7 +39,6 @@ public class ClientUtils implements ClientUtilsInterface
     @Override
     public User checkUser(String user, String pwd)
     {
-
         boolean success = false;
         short retries = 0;
         User receivedUser = null;
@@ -80,7 +79,6 @@ public class ClientUtils implements ClientUtilsInterface
     @Override
     public Long postOtherDomainMessage(Message message, String user)
     {
-
         short retries = 0;
         while (retries < MAX_RETRIES) {
             try {

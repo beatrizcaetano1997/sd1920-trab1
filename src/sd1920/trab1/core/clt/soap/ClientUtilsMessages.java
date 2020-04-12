@@ -19,8 +19,8 @@ import sd1920.trab1.api.soap.MessagesException;
 public class ClientUtilsMessages implements IClientUtilsMessages
 {
 
-	private static final int CONNECTION_TIMEOUT = 10000;
-    private static final int REPLY_TIMOUT = 600;
+	private static final int CONNECTION_TIMEOUT = 15000;
+    private static final int REPLY_TIMOUT = 1000;
     private static final int MAX_RETRIES = 3;
     private static final int RETRY_PERIOD = 1000;
     

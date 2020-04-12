@@ -143,7 +143,7 @@ public class UsersResource implements UserServiceSoap {
 
         try
         {
-        	new ClientUtilsMessages(getURI(domain, MessageServiceSoap.NAME).toString()).deleteUserInbox(user);
+        	new ClientUtilsMessages(getURI(domain, MessageServiceSoap.NAME)).deleteUserInbox(user);
         }
         catch (MalformedURLException | WebServiceException clientEx)
         {
@@ -157,9 +157,9 @@ public class UsersResource implements UserServiceSoap {
 
     }
 
-    private URI getURI(String domain, String serviceType)
+    private String getURI(String domain, String serviceType)
     {
-    	return discovery.getURI(domain, serviceType);
+    	return discovery.getURI(domain, serviceType).toString();
     }
 
 
